@@ -24,9 +24,17 @@ This runs a complete development environment with:
 ### Database Operations
 - **Run migrations**: `php artisan migrate`
 - **Refresh database**: `php artisan migrate:refresh --seed`
+- **Seed database only**: `php artisan db:seed`
 - **Create migration**: `php artisan make:migration create_table_name`
 - **Create model**: `php artisan make:model ModelName -m` (includes migration)
 - **Database**: MySQL (database: `1stopparty`)
+
+### Artisan Commands
+- **Create controller**: `php artisan make:controller ControllerName`
+- **Create resource**: `php artisan make:resource ResourceName`
+- **Create middleware**: `php artisan make:middleware MiddlewareName`
+- **Create seeder**: `php artisan make:seeder SeederName`
+- **Clear cache**: `php artisan config:clear && php artisan cache:clear`
 
 ## Architecture Overview
 
@@ -34,9 +42,11 @@ This is a Laravel 12 application for party/event management with a React fronten
 
 ### Key Architecture Patterns
 - **Backend**: Laravel 12 REST API with role-based access control
-- **Frontend**: React with Vite build system and Tailwind CSS
-- **Database**: MySQL with SQLite for testing
+- **Frontend**: React with Vite build system and Tailwind CSS v4
+- **Database**: MySQL (production) with SQLite for testing (in-memory)
+- **Authentication**: Laravel Sanctum with React context
 - **File handling**: Local storage with upload support for documents (PDF, DOCX, XLS, CSV)
+- **State management**: React Context API (AuthContext)
 
 ### Core Module Structure
 Based on ARCHITECTURE.md, the system has these main modules:
@@ -48,12 +58,13 @@ Based on ARCHITECTURE.md, the system has these main modules:
 - **Profile Settings**: User profile management
 
 ### Database Schema (Key Tables)
-- `users` → Authentication with role-based permissions
-- `roles` → Role definitions (Admin, Anggota Cabang, Bendahari, etc.)
+- `users` → Authentication with role-based permissions (includes ic_number, phone fields)
+- `roles` → Role definitions with descriptions (Admin, Anggota Cabang, Bendahari, etc.)
 - `meetings` → Meeting management with file attachments
 - `events` → Events categorized by role (Cabang/AMK/Wanita)
-- `members` → Member database with import functionality
+- `members` → Member database with import functionality (CSV/Excel import templates available)
 - `finances` → Financial transaction tracking
+- `sessions` → Laravel session management
 
 ### API Structure
 API endpoints follow RESTful patterns:
@@ -67,17 +78,25 @@ API endpoints follow RESTful patterns:
 ## File Organization
 
 ### Laravel Structure
-- `app/Http/Controllers/` → API controllers
-- `app/Models/` → Eloquent models
+- `app/Http/Controllers/` → API controllers (User, Meeting, Event, Member, Dashboard, Profile)
+- `app/Http/Resources/` → API resources for data transformation
+- `app/Http/Middleware/` → Custom middleware (RoleMiddleware, CheckRole)
+- `app/Models/` → Eloquent models (User, Role, Meeting, Event, Member, Finance)
+- `app/Console/Commands/` → Custom Artisan commands
 - `database/migrations/` → Database schema
-- `routes/web.php` → Web routes
-- `routes/api.php` → API routes (when added)
+- `database/seeders/` → Database seeders for all entities
+- `database/factories/` → Model factories for testing
+- `routes/web.php` → Web routes (Blade views)
+- `routes/api.php` → API routes
 
 ### Frontend Assets
-- `resources/js/` → React components and JavaScript
-- `resources/css/` → Stylesheets (Tailwind CSS)
-- `resources/views/` → Blade templates
-- `public/` → Static assets
+- `resources/js/components/` → Reusable React components
+- `resources/js/components/ui/` → UI components (Button, Input, Card, Label)
+- `resources/js/pages/` → Page components (Dashboard, CreateUser, EditUser, etc.)
+- `resources/js/contexts/` → React contexts (AuthContext)
+- `resources/css/` → Stylesheets (Tailwind CSS v4)
+- `resources/views/` → Blade templates (login, register, dashboard, welcome)
+- `public/` → Static assets and built files
 
 ### Configuration
 - `vite.config.js` → Frontend build configuration
@@ -88,14 +107,27 @@ API endpoints follow RESTful patterns:
 ## Development Notes
 
 ### Testing Setup
-- Uses PHPUnit for backend tests
-- Test database: SQLite in-memory
-- Run tests with `composer test`
+- Uses PHPUnit for backend tests (Feature and Unit tests)
+- Test database: SQLite in-memory (configured in phpunit.xml)
+- Run tests with `composer test` (clears config first, then runs tests)
+- Existing tests: ExampleTest, MeetingControllerTest
 
 ### Code Style
 - Laravel Pint for PHP formatting (PSR-12 standard)
-- Tailwind CSS for styling
+- Tailwind CSS v4 for styling
 - Follow Laravel conventions for naming (PascalCase for models, snake_case for database)
 
+### File Storage
+- Member import templates available at `storage/app/templates/members_import_template.csv`
+- File uploads stored in `storage/app/public/`
+- Supports PDF, DOCX, XLS, CSV file formats
+
 ### Role-Based Features
-When implementing features, consider the role system outlined in ROLES.md. Different user roles have different permissions and access to various modules.
+When implementing features, consider the role system outlined in ROLES.md:
+- **Admin**: Full system access, can assign roles
+- **Anggota Cabang**: View-only access to all modules
+- **Other roles** (Bendahari, Setiausaha, etc.): Can manage meetings, events, and members within their role category
+
+### Middleware Usage
+- `CheckRole` and `RoleMiddleware` for role-based access control
+- Apply to routes that need permission restrictions

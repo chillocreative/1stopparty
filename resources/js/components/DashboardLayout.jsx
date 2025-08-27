@@ -1,9 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import ViewAllUsers from '../pages/ViewAllUsers';
+import CreateUser from '../pages/CreateUser';
+import EditUser from '../pages/EditUser';
 
 const DashboardLayout = ({ children, user }) => {
   const [currentPath, setCurrentPath] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Detect current path from URL
+  useEffect(() => {
+    const detectCurrentPath = () => {
+      const pathname = window.location.pathname;
+      if (pathname === '/dashboard' || pathname === '/') {
+        setCurrentPath('dashboard');
+      } else if (pathname === '/users') {
+        setCurrentPath('view-all-users');
+      } else if (pathname === '/users/create') {
+        setCurrentPath('create-user');
+      } else if (pathname.startsWith('/users/edit/')) {
+        setCurrentPath('create-user'); // Use same as create for menu highlighting
+      } else if (pathname === '/profile') {
+        setCurrentPath('profile');
+      } else if (pathname === '/meetings') {
+        setCurrentPath('meetings');
+      } else if (pathname === '/events') {
+        setCurrentPath('events');
+      } else if (pathname === '/members') {
+        setCurrentPath('members');
+      } else if (pathname === '/finances') {
+        setCurrentPath('finances');
+      } else {
+        setCurrentPath('dashboard');
+      }
+    };
+
+    detectCurrentPath();
+    
+    // Listen for navigation changes
+    window.addEventListener('popstate', detectCurrentPath);
+    return () => window.removeEventListener('popstate', detectCurrentPath);
+  }, []);
 
   const handleNavigation = (path, route) => {
     setCurrentPath(path);
@@ -102,10 +139,10 @@ const DashboardLayout = ({ children, user }) => {
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-gray-900">
-                    {user?.name || 'User Name'}
+                    {user?.name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {user?.role?.name || 'Role'}
+                    {user?.role?.name}
                   </p>
                 </div>
               </div>

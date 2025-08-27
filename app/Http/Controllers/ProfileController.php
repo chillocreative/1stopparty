@@ -16,14 +16,24 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'ic_number' => ['nullable', 'string', 'regex:/^\d{12}$/'],
+            'phone' => ['nullable', 'string', 'regex:/^01[0-9]{8,9}$/'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'profile_image' => ['nullable', 'image', 'max:1024'], // max 1MB
         ]);
 
         // Update basic info
         $user->name = $validated['name'];
-        $user->email = $validated['email'];
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+        if (isset($validated['ic_number'])) {
+            $user->ic_number = $validated['ic_number'];
+        }
+        if (isset($validated['phone'])) {
+            $user->phone = $validated['phone'];
+        }
 
         // Update password if provided
         if (isset($validated['password'])) {

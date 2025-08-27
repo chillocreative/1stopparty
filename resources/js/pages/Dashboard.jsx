@@ -17,7 +17,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Get user data from session or API
       const userResponse = await fetch('/api/user');
       if (userResponse.ok) {
@@ -69,7 +69,7 @@ const Dashboard = () => {
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Dashboard</h3>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchDashboardData}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >

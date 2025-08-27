@@ -4,6 +4,10 @@ import { createRoot } from 'react-dom/client';
 import WelcomePage from './components/WelcomePage';
 import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
+import ViewAllUsers from './pages/ViewAllUsers';
+import CreateUser from './pages/CreateUser';
+import EditUser from './pages/EditUser';
+import Profile from './pages/Profile';
 
 console.log('App.jsx loaded');
 
@@ -32,6 +36,22 @@ const dashboardElement = document.getElementById('dashboard-app');
 if (dashboardElement) {
     console.log('Mounting Dashboard component');
     const root = createRoot(dashboardElement);
-    root.render(<Dashboard />);
-    console.log('Dashboard component mounted');
+    
+    // Simple routing based on current path
+    const currentPath = window.location.pathname;
+    
+    let ComponentToRender = Dashboard;
+    
+    if (currentPath === '/users') {
+        ComponentToRender = ViewAllUsers;
+    } else if (currentPath === '/users/create') {
+        ComponentToRender = CreateUser;
+    } else if (currentPath.startsWith('/users/edit')) {
+        ComponentToRender = EditUser;
+    } else if (currentPath === '/profile') {
+        ComponentToRender = Profile;
+    }
+    
+    root.render(<ComponentToRender />);
+    console.log('Dashboard component mounted with path:', currentPath, 'Component:', ComponentToRender.name);
 }

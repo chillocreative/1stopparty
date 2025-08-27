@@ -13,10 +13,10 @@ Route::get('/user', function (Request $request) {
         'success' => true,
         'data' => $request->user()->load('role')
     ]);
-})->middleware('auth:sanctum');
+})->middleware('auth');
 
 // Profile routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth')->group(function () {
     Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update']);
 });
 
@@ -29,17 +29,17 @@ Route::get('/roles', function () {
 });
 
 // Dashboard routes - accessible by all authenticated users
-Route::prefix('dashboard')->middleware('auth:sanctum')->group(function () {
+Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::get('cards', [DashboardController::class, 'cards']);
     Route::get('charts', [DashboardController::class, 'charts']);
 });
 
 // Users routes - Only Admin can manage users
 Route::apiResource('users', UserController::class)
-    ->middleware(['auth:sanctum', 'role:Admin']);
+    ->middleware(['auth', 'role:Admin']);
 
 // Meetings routes - Based on role permissions
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth')->group(function () {
     // View meetings - All roles can view
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
@@ -56,7 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Events routes - Based on role permissions
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth')->group(function () {
     // View events - All roles can view
     Route::get('events', [EventController::class, 'index']);
     Route::get('events/{event}', [EventController::class, 'show']);
@@ -73,7 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Members routes - Based on role permissions
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth')->group(function () {
     // View members - All roles can view
     Route::get('members', [MemberController::class, 'index']);
     Route::get('members/{member}', [MemberController::class, 'show']);

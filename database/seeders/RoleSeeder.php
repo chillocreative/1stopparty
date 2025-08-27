@@ -19,10 +19,6 @@ class RoleSeeder extends Seeder
                 'description' => 'Full system access and user management - can perform all operations',
             ],
             [
-                'name' => 'Anggota Cabang',
-                'description' => 'Basic member with view-only access to meetings, events, and members',
-            ],
-            [
                 'name' => 'Bendahari',
                 'description' => 'Financial management and reporting - can manage finances and create meetings/events',
             ],
@@ -41,6 +37,14 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Wanita',
                 'description' => 'Women\'s wing activities and events - can manage Wanita category events and members',
+            ],
+            [
+                'name' => 'AJK Cabang',
+                'description' => 'Committee members with broader access to manage branch activities',
+            ],
+            [
+                'name' => 'Anggota Biasa',
+                'description' => 'Regular members with basic access to view meetings, events, and activities',
             ],
         ];
 

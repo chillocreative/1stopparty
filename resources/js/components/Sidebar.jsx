@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({});
+
+  // Auto-expand menus with active submenu items
+  useEffect(() => {
+    const menuItems = getMenuItems(user?.role?.name);
+    const newExpandedState = {};
+    
+    menuItems.forEach(item => {
+      if (item.hasSubmenu && item.submenu) {
+        const hasActiveSubmenu = item.submenu.some(sub => currentPath === sub.id);
+        if (hasActiveSubmenu) {
+          newExpandedState[item.id] = true;
+        }
+      }
+    });
+    
+    setExpandedMenus(prev => ({ ...prev, ...newExpandedState }));
+  }, [currentPath, user?.role?.name]);
 
   // Define menu items based on roles from ROLES.md
   const getMenuItems = (userRole) => {
@@ -17,49 +34,43 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
           </svg>
         ),
         path: '/dashboard',
-        roles: ['Admin', 'Anggota Cabang', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+        roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
+      },
+      // Users menu - Admin only
+      {
+        id: 'users',
+        label: 'Users',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M8 7a4 4 0 118 0 4 4 0 01-8 0z" />
+          </svg>
+        ),
+        hasSubmenu: true,
+        roles: ['Admin'],
+        submenu: [
+          {
+            id: 'view-all-users',
+            label: 'View All Users',
+            path: '/users',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            )
+          },
+          {
+            id: 'create-user',
+            label: 'Create User',
+            path: '/users/create',
+            icon: (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            )
+          }
+        ]
       }
     ];
-
-    // Admin - Users with submenu
-    if (userRole === 'Admin') {
-      menuItems.push(
-        {
-          id: 'users',
-          label: 'Users',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-          ),
-          hasSubmenu: true,
-          roles: ['Admin'],
-          submenu: [
-            {
-              id: 'view-users',
-              label: 'View Users',
-              path: '/users',
-              icon: (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              )
-            },
-            {
-              id: 'create-user',
-              label: 'Create User',
-              path: '/users/create',
-              icon: (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              )
-            }
-          ]
-        }
-      );
-    }
 
     // Meetings - View access for all, manage access for specific roles
     menuItems.push({
@@ -71,7 +82,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         </svg>
       ),
       path: '/meetings',
-      roles: ['Admin', 'Anggota Cabang', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
     });
 
     // Events - View access for all, manage access for specific roles
@@ -84,7 +95,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         </svg>
       ),
       path: '/events',
-      roles: ['Admin', 'Anggota Cabang', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
     });
 
     // Members - View access for all, manage access for specific roles
@@ -97,7 +108,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         </svg>
       ),
       path: '/members',
-      roles: ['Admin', 'Anggota Cabang', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
     });
 
     // Finances - Only for Admin and Bendahari
@@ -125,7 +136,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         </svg>
       ),
       path: '/profile',
-      roles: ['Admin', 'Anggota Cabang', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
     });
 
     // Filter menu items based on user role
@@ -134,7 +145,15 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
 
   // Normalize the role name to match the database
   const normalizedRole = user?.role?.name === 'Superadmin' ? 'Admin' : user?.role?.name;
-  const menuItems = getMenuItems(normalizedRole || 'Anggota Cabang');
+  const menuItems = getMenuItems(normalizedRole || 'Admin');
+
+  // Debug logging - remove after testing
+  console.log('Sidebar Debug:', {
+    user: user,
+    userRole: user?.role,
+    normalizedRole: normalizedRole,
+    menuItems: menuItems
+  });
 
   const handleMenuClick = (item) => {
     if (item.hasSubmenu) {
@@ -143,14 +162,22 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         ...prev,
         [item.id]: !prev[item.id]
       }));
-    } else if (onNavigate && item.path) {
-      onNavigate(item.id, item.path);
+    } else if (item.path) {
+      // Direct navigation to the path
+      window.location.href = item.path;
     }
   };
 
-  const handleSubmenuClick = (submenuItem) => {
-    if (onNavigate && submenuItem.path) {
-      onNavigate(submenuItem.id, submenuItem.path);
+  const handleSubmenuClick = (submenuItem, parentMenuId) => {
+    if (submenuItem.path) {
+      // Keep parent menu expanded when navigating to submenu item
+      setExpandedMenus(prev => ({
+        ...prev,
+        [parentMenuId]: true
+      }));
+
+      // Direct navigation to the path
+      window.location.href = submenuItem.path;
     }
   };
 
@@ -189,7 +216,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.name || 'User Name'}
+                {user?.name || 'User'}
               </p>
               <p className="text-xs text-gray-500 truncate">
                 {user?.role?.name || 'Role'}
@@ -201,64 +228,73 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
 
       {/* Navigation Menu */}
       <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => (
-          <div key={item.id}>
-            {/* Main Menu Item */}
-            <button
-              onClick={() => handleMenuClick(item)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                currentPath === item.id || (item.submenu && item.submenu.some(sub => currentPath === sub.id))
-                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <span className={`flex-shrink-0 ${
-                currentPath === item.id || (item.submenu && item.submenu.some(sub => currentPath === sub.id)) 
-                  ? 'text-blue-600' 
-                  : 'text-gray-500'
-              }`}>
-                {item.icon}
-              </span>
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 font-medium">{item.label}</span>
-                  {item.hasSubmenu && (
-                    <svg
-                      className={`w-4 h-4 transition-transform ${expandedMenus[item.id] ? 'rotate-90' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                </>
-              )}
-            </button>
+        {menuItems.map((item) => {
+          // Keep submenu open if any submenu item is active
+          const isSubmenuActive = item.submenu && item.submenu.some(sub => currentPath === sub.id);
+          const isDirectlyActive = currentPath === item.id;
+          const shouldBeExpanded = isSubmenuActive || expandedMenus[item.id];
+          
+          return (
+            <div key={item.id}>
+              {/* Main Menu Item */}
+              <button
+                onClick={() => handleMenuClick(item)}
+                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                  isDirectlyActive
+                    ? 'bg-gray-100 text-gray-900'
+                    : isSubmenuActive
+                    ? 'text-gray-900'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <span className={`flex-shrink-0 ${
+                  isDirectlyActive || isSubmenuActive
+                    ? 'text-gray-600'
+                    : 'text-gray-500'
+                }`}>
+                  {item.icon}
+                </span>
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 font-medium">{item.label}</span>
+                    {item.hasSubmenu && (
+                      <svg
+                        className={`w-4 h-4 transition-transform ${shouldBeExpanded ? 'rotate-90' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </>
+                )}
+              </button>
 
-            {/* Submenu Items */}
-            {item.hasSubmenu && !isCollapsed && expandedMenus[item.id] && (
-              <div className="ml-8 mt-1 space-y-1">
-                {item.submenu?.map((submenuItem) => (
-                  <button
-                    key={submenuItem.id}
-                    onClick={() => handleSubmenuClick(submenuItem)}
-                    className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${
-                      currentPath === submenuItem.id
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className={`flex-shrink-0 ${currentPath === submenuItem.id ? 'text-blue-600' : 'text-gray-400'}`}>
-                      {submenuItem.icon}
-                    </span>
-                    <span className="font-medium">{submenuItem.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+              {/* Submenu Items */}
+              {item.hasSubmenu && !isCollapsed && (shouldBeExpanded) && (
+                <div className="ml-8 mt-1 space-y-1">
+                  {item.submenu?.map((submenuItem) => (
+                    <button
+                      key={submenuItem.id}
+                      onClick={() => handleSubmenuClick(submenuItem, item.id)}
+                      className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${
+                        currentPath === submenuItem.id
+                          ? 'bg-gray-100 text-gray-900 font-medium'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className={`flex-shrink-0 ${currentPath === submenuItem.id ? 'text-gray-600' : 'text-gray-400'}`}>
+                        {submenuItem.icon}
+                      </span>
+                      <span className="font-medium">{submenuItem.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Footer */}

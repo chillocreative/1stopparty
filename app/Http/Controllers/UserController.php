@@ -37,7 +37,9 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'nullable|email|unique:users,email',
+            'ic_number' => 'required|string|regex:/^\d{12}$/',
+            'phone' => 'required|string|regex:/^01[0-9]{8,9}$/',
             'password' => 'required|min:8',
             'role_id' => 'required|exists:roles,id',
             'profile_image' => 'nullable|string',
@@ -75,7 +77,9 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['nullable', 'email', Rule::unique('users')->ignore($user->id)],
+            'ic_number' => 'required|string|regex:/^\d{12}$/',
+            'phone' => 'required|string|regex:/^01[0-9]{8,9}$/',
             'password' => 'nullable|min:8',
             'role_id' => 'required|exists:roles,id',
             'profile_image' => 'nullable|string',

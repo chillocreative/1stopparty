@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/Card';
 import Button from './ui/Button';
 import Input from './ui/Input';
@@ -7,38 +7,32 @@ import Label from './ui/Label';
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
     name: '',
+    ic_number: '',
+    phone: '',
     email: '',
     password: '',
-    password_confirmation: '',
-    role_id: ''
+    password_confirmation: ''
   });
-  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Fetch roles on component mount
-  useEffect(() => {
-    fetchRoles();
-  }, []);
-
-  const fetchRoles = async () => {
-    try {
-      const response = await fetch('/api/roles');
-      if (response.ok) {
-        const data = await response.json();
-        setRoles(data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // For IC number and phone, only allow digits
+    if (name === 'ic_number' || name === 'phone') {
+      const numericValue = value.replace(/\D/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -56,12 +50,21 @@ const RegistrationForm = () => {
     // Basic client-side validation
     const newErrors = {};
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Full Name is required';
     }
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    if (!formData.ic_number.trim()) {
+      newErrors.ic_number = 'IC Number is required';
+    } else if (!/^\d{12}$/.test(formData.ic_number)) {
+      newErrors.ic_number = 'IC Number must be 12 digits only (no symbols)';
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Handphone Number is required';
+    } else if (!/^01[0-9]{8,9}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone number must be 10-11 digits starting with 01 (no symbols)';
+    }
+    // Email is optional but must be valid if provided
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email format is invalid';
     }
     if (!formData.password) {
       newErrors.password = 'Password is required';
@@ -72,9 +75,6 @@ const RegistrationForm = () => {
       newErrors.password_confirmation = 'Password confirmation is required';
     } else if (formData.password !== formData.password_confirmation) {
       newErrors.password_confirmation = 'Passwords do not match';
-    }
-    if (!formData.role_id) {
-      newErrors.role_id = 'Role selection is required';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -154,12 +154,48 @@ const RegistrationForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="ic_number">IC Number</Label>
+            <Input
+              id="ic_number"
+              name="ic_number"
+              type="text"
+              maxLength="12"
+              placeholder="12 digits only (e.g., 990101140123)"
+              value={formData.ic_number}
+              onChange={handleInputChange}
+              disabled={loading}
+              className={errors.ic_number ? 'border-red-500 focus-visible:ring-red-500' : ''}
+            />
+            {errors.ic_number && (
+              <p className="text-sm text-red-600">{errors.ic_number}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Handphone Number</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="text"
+              maxLength="11"
+              placeholder="10-11 digits only (e.g., 0123456789)"
+              value={formData.phone}
+              onChange={handleInputChange}
+              disabled={loading}
+              className={errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
+            />
+            {errors.phone && (
+              <p className="text-sm text-red-600">{errors.phone}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address (if any)</Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Enter your email (optional)"
               value={formData.email}
               onChange={handleInputChange}
               disabled={loading}
@@ -167,30 +203,6 @@ const RegistrationForm = () => {
             />
             {errors.email && (
               <p className="text-sm text-red-600">{errors.email}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role_id">Role</Label>
-            <select
-              id="role_id"
-              name="role_id"
-              value={formData.role_id}
-              onChange={handleInputChange}
-              disabled={loading}
-              className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                errors.role_id ? 'border-red-500 focus-visible:ring-red-500' : ''
-              }`}
-            >
-              <option value="">Select your role</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            {errors.role_id && (
-              <p className="text-sm text-red-600">{errors.role_id}</p>
             )}
           </div>
 
