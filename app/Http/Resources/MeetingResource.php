@@ -17,8 +17,10 @@ class MeetingResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
-            'date' => $this->date->toDateString(),
-            'file_path' => $this->file_path,
+            'date' => $this->date ? $this->date->toDateString() : null,
+            'time' => $this->time,
+            'minit_mesyuarat_file' => $this->minit_mesyuarat_file,
+            'minit_mesyuarat_file_url' => $this->minit_mesyuarat_file_url,
             'created_by' => $this->created_by,
             'creator' => $this->whenLoaded('creator', function () {
                 return [

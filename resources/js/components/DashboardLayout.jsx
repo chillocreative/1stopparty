@@ -20,10 +20,16 @@ const DashboardLayout = ({ children, user }) => {
         setCurrentPath('create-user');
       } else if (pathname.startsWith('/users/edit/')) {
         setCurrentPath('create-user'); // Use same as create for menu highlighting
+      } else if (pathname === '/roles') {
+        setCurrentPath('view-all-roles');
       } else if (pathname === '/profile') {
         setCurrentPath('profile');
       } else if (pathname === '/meetings') {
-        setCurrentPath('meetings');
+        setCurrentPath('view-all-meetings');
+      } else if (pathname === '/meetings/create') {
+        setCurrentPath('create-meeting');
+      } else if (pathname.startsWith('/meetings/edit/')) {
+        setCurrentPath('create-meeting'); // Use same as create for menu highlighting
       } else if (pathname === '/events') {
         setCurrentPath('events');
       } else if (pathname === '/members') {

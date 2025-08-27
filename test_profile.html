@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile Debug Test</title>
+</head>
+<body>
+    <h1>Profile Debug Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testProfileAPI() {
+            try {
+                console.log('Testing /api/user endpoint...');
+                const response = await fetch('/api/user', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    console.log('Full response:', userData);
+                    
+                    const userInfo = userData.data;
+                    console.log('User data:', userInfo);
+                    
+                    document.getElementById('result').innerHTML = `
+                        <h2>User Data Retrieved:</h2>
+                        <pre>${JSON.stringify(userInfo, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    console.log('Error response:', errorText);
+                    document.getElementById('result').innerHTML = `
+                        <h2>Error (${response.status}):</h2>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h2>Network Error:</h2>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testProfileAPI;
+    </script>
+</body>
+</html>

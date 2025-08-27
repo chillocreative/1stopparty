@@ -7,7 +7,11 @@ import Registration from './pages/Registration';
 import ViewAllUsers from './pages/ViewAllUsers';
 import CreateUser from './pages/CreateUser';
 import EditUser from './pages/EditUser';
+import ViewAllRoles from './pages/ViewAllRoles';
 import Profile from './pages/Profile';
+import ViewAllMeetings from './pages/ViewAllMeetings';
+import CreateMeeting from './pages/CreateMeeting';
+import EditMeeting from './pages/EditMeeting';
 
 console.log('App.jsx loaded');
 
@@ -48,6 +52,14 @@ if (dashboardElement) {
         ComponentToRender = CreateUser;
     } else if (currentPath.startsWith('/users/edit')) {
         ComponentToRender = EditUser;
+    } else if (currentPath === '/roles') {
+        ComponentToRender = ViewAllRoles;
+    } else if (currentPath === '/meetings') {
+        ComponentToRender = ViewAllMeetings;
+    } else if (currentPath === '/meetings/create') {
+        ComponentToRender = CreateMeeting;
+    } else if (currentPath.startsWith('/meetings/edit')) {
+        ComponentToRender = EditMeeting;
     } else if (currentPath === '/profile') {
         ComponentToRender = Profile;
     }

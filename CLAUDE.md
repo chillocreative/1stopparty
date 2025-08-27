@@ -131,3 +131,57 @@ When implementing features, consider the role system outlined in ROLES.md:
 ### Middleware Usage
 - `CheckRole` and `RoleMiddleware` for role-based access control
 - Apply to routes that need permission restrictions
+
+## Project Status and Architecture Notes
+
+### Current Implementation Status
+This is a **production-ready** Laravel 12 + React 18 party management system with the following completed modules:
+- ✅ **Authentication System**: Session-based with role management
+- ✅ **User Management**: Complete CRUD with profile images (Admin only)
+- ✅ **Profile Management**: User profile editing with image uploads
+- ✅ **Meetings Management**: Full CRUD with file upload capabilities
+- ✅ **Dashboard**: Statistics display with proper icon alignment
+- ✅ **Role-Based Access**: 8 user roles with granular permissions
+
+### Key Implementation Details
+
+#### Authentication Architecture
+- Uses Laravel session-based authentication (not Sanctum as mentioned above)
+- Database session driver configured in phpunit.xml
+- AuthContext provides React state management
+- Role-based middleware protection on routes
+
+#### User Role System (8 Roles)
+1. **Admin**: Full system access, user management
+2. **Bendahari**: Financial management + standard access
+3. **Setiausaha**: Administrative tasks + standard access  
+4. **Setiausaha Pengelola**: Enhanced administrative access
+5. **AMK**: Youth wing activities + standard access
+6. **Wanita**: Women's wing activities + standard access
+7. **AJK Cabang**: Enhanced standard access
+8. **Anggota Biasa**: Basic member access
+
+#### File Upload System
+- Profile images: JPG/PNG, max 2MB
+- Meeting files: PDF/DOC/DOCX, max 10MB
+- Storage in `storage/app/public/` with proper cleanup
+- Frontend validation + backend validation
+
+#### Database Configuration
+- **Production**: MySQL (`1stopparty` database)
+- **Testing**: SQLite in-memory
+- Session storage in database
+- Comprehensive seeding system with test users
+
+### Test Users Available
+Pre-seeded test accounts (password varies by role):
+- admin@1stopparty.com (password: password)
+- bendahari@1stopparty.com (password: bendahari123)
+- setiausaha@1stopparty.com (password: setiausaha123)
+- [See summary.md for complete list]
+
+### Development Debugging
+- `/setup-database` route for automated database setup
+- `/debug/auth` route for authentication debugging
+- Enhanced error handling with detailed messages
+- Console logging in React components for troubleshooting

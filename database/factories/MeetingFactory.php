@@ -32,7 +32,8 @@ class MeetingFactory extends Factory
         return [
             'title' => fake()->randomElement($meetingTypes) . ' - ' . fake()->monthName() . ' ' . fake()->year(),
             'date' => fake()->dateTimeBetween('-6 months', '+3 months')->format('Y-m-d'),
-            'file_path' => fake()->optional(0.7)->regexify('meetings/[0-9]{4}/[0-9]{2}/meeting_[0-9a-f]{8}\.pdf'),
+            'time' => fake()->optional(0.8)->time(),
+            'minit_mesyuarat_file' => fake()->optional(0.7)->regexify('meetings/[0-9]{4}/[0-9]{2}/meeting_[0-9a-f]{8}\.pdf'),
             'created_by' => User::factory(),
             'role_id' => Role::factory(),
         ];
@@ -44,7 +45,7 @@ class MeetingFactory extends Factory
     public function withoutFile(): static
     {
         return $this->state(fn (array $attributes) => [
-            'file_path' => null,
+            'minit_mesyuarat_file' => null,
         ]);
     }
 

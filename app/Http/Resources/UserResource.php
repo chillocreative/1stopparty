@@ -30,6 +30,7 @@ class UserResource extends JsonResource
                 ];
             }),
             'profile_image' => $this->profile_image,
+            'profile_image_url' => $this->profile_image_url,
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
         ];

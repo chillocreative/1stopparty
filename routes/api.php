@@ -4,19 +4,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return response()->json([
-        'success' => true,
-        'data' => $request->user()->load('role')
-    ]);
-})->middleware('auth');
+// This route has been moved to web.php to work with web sessions
+// Route::get('/user', ...)->middleware(['web', 'auth']);
 
 // Profile routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update']);
 });
 
@@ -29,17 +26,21 @@ Route::get('/roles', function () {
 });
 
 // Dashboard routes - accessible by all authenticated users
-Route::prefix('dashboard')->middleware('auth')->group(function () {
+Route::prefix('dashboard')->middleware(['web', 'auth'])->group(function () {
     Route::get('cards', [DashboardController::class, 'cards']);
     Route::get('charts', [DashboardController::class, 'charts']);
 });
 
 // Users routes - Only Admin can manage users
 Route::apiResource('users', UserController::class)
-    ->middleware(['auth', 'role:Admin']);
+    ->middleware(['web', 'auth', 'role:Admin']);
+
+// Roles routes - Only Admin can manage roles
+Route::apiResource('roles', RoleController::class)
+    ->middleware(['web', 'auth', 'role:Admin']);
 
 // Meetings routes - Based on role permissions
-Route::middleware('auth')->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     // View meetings - All roles can view
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
@@ -56,7 +57,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Events routes - Based on role permissions
-Route::middleware('auth')->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     // View events - All roles can view
     Route::get('events', [EventController::class, 'index']);
     Route::get('events/{event}', [EventController::class, 'show']);
@@ -73,7 +74,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Members routes - Based on role permissions
-Route::middleware('auth')->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
     // View members - All roles can view
     Route::get('members', [MemberController::class, 'index']);
     Route::get('members/{member}', [MemberController::class, 'show']);

@@ -16,10 +16,12 @@ const CreateUser = () => {
     email: '',
     password: '',
     password_confirmation: '',
-    role_id: ''
+    role_id: '',
+    profile_image: null
   });
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchUserData();
@@ -63,7 +65,51 @@ const CreateUser = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
+
+    // Handle file upload for profile image
+    if (name === 'profile_image' && files && files[0]) {
+      const file = files[0];
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({
+          ...prev,
+          profile_image: 'Please select a valid image file'
+        }));
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({
+          ...prev,
+          profile_image: 'Image size must be less than 5MB'
+        }));
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        [name]: file
+      }));
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      // Clear error
+      if (errors.profile_image) {
+        setErrors(prev => ({
+          ...prev,
+          profile_image: ''
+        }));
+      }
+      return;
+    }
 
     // For IC number and phone, only allow digits
     if (name === 'ic_number' || name === 'phone') {
@@ -144,16 +190,28 @@ const CreateUser = () => {
     setLoading(true);
 
     try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('ic_number', formData.ic_number);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('password_confirmation', formData.password_confirmation);
+      formDataToSend.append('role_id', formData.role_id);
+      
+      if (formData.profile_image) {
+        formDataToSend.append('profile_image', formData.profile_image);
+      }
+
       const response = await fetch('/users/store', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
           'X-Requested-With': 'XMLHttpRequest',
         },
         credentials: 'same-origin',
-        body: JSON.stringify(formData)
+        body: formDataToSend
       });
 
       const data = await response.json();
@@ -167,8 +225,10 @@ const CreateUser = () => {
           email: '',
           password: '',
           password_confirmation: '',
-          role_id: ''
+          role_id: '',
+          profile_image: null
         });
+        setImagePreview(null);
         setErrors({});
 
         // Show success message for 2 seconds then redirect
@@ -257,6 +317,65 @@ const CreateUser = () => {
           </CardHeader>
           <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Profile Image Upload Section */}
+                <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-300">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Profile preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    {imagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImagePreview(null);
+                          setFormData(prev => ({ ...prev, profile_image: null }));
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <Label htmlFor="profile_image" className="cursor-pointer">
+                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Upload Profile Picture
+                      </span>
+                      <input
+                        id="profile_image"
+                        name="profile_image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optional. Max file size: 5MB. Supported formats: JPG, PNG, GIF
+                    </p>
+                    {errors.profile_image && (
+                      <p className="mt-1 text-sm text-red-600">{errors.profile_image}</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                   {/* Name */}
                   <div className="lg:col-span-3">
