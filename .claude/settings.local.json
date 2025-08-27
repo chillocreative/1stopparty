@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan make:migration:*)",
+      "Read(d:\\VIDEO EDITING\\Screenpresso/**)",
+      "Read(d:\\VIDEO EDITING\\Screenpresso/**)",
+      "Bash(git log:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "D:\\"
+    ]
+  }
+}
