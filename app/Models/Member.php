@@ -22,6 +22,7 @@ class Member extends Model
         'phone',
         'email',
         'address',
+        'address_2',
         'postcode',
         'city',
         'state',
@@ -41,6 +42,9 @@ class Member extends Model
         'approval_notes',
         'has_duplicates',
         'duplicate_info',
+        'member_no',
+        'race',
+        'branch',
     ];
 
     /**

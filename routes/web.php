@@ -451,10 +451,6 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('members.upload');
 
-    Route::get('/members/pending-approval', function () {
-        return view('dashboard');
-    })->name('members.pending-approval')->middleware('role:Admin');
-
     Route::get('/members/api-settings', function () {
         return view('dashboard');
     })->name('members.api-settings')->middleware('role:Admin');

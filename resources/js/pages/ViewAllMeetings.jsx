@@ -14,6 +14,8 @@ const ViewAllMeetings = () => {
     const [itemsPerPage, setItemsPerPage] = useState(20);
     const [sortField, setSortField] = useState('date');
     const [sortDirection, setSortDirection] = useState('desc');
+    const [selectedItems, setSelectedItems] = useState(new Set());
+    const [showBulkActions, setShowBulkActions] = useState(false);
 
     useEffect(() => {
         fetchMeetings();
@@ -191,6 +193,8 @@ const ViewAllMeetings = () => {
     // Reset to first page when filters change
     useEffect(() => {
         setCurrentPage(1);
+        setSelectedItems(new Set());
+        setShowBulkActions(false);
     }, [searchTerm, selectedCategory]);
 
     // Pagination handlers
@@ -201,6 +205,64 @@ const ViewAllMeetings = () => {
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
+    };
+
+    // Bulk action handlers
+    const handleSelectAll = (checked) => {
+        if (checked) {
+            const allIds = new Set(paginatedMeetings.map(meeting => meeting.id));
+            setSelectedItems(allIds);
+        } else {
+            setSelectedItems(new Set());
+        }
+        setShowBulkActions(checked && paginatedMeetings.length > 0);
+    };
+
+    const handleSelectItem = (id, checked) => {
+        const newSelection = new Set(selectedItems);
+        if (checked) {
+            newSelection.add(id);
+        } else {
+            newSelection.delete(id);
+        }
+        setSelectedItems(newSelection);
+        setShowBulkActions(newSelection.size > 0);
+    };
+
+    const handleBulkDelete = async () => {
+        if (!confirm(`Are you sure you want to delete ${selectedItems.size} selected meetings?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/meetings', {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    ids: Array.from(selectedItems)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            alert(result.message || 'Meetings deleted successfully');
+            
+            // Reset selection and refresh meetings list
+            setSelectedItems(new Set());
+            setShowBulkActions(false);
+            await fetchMeetings();
+        } catch (error) {
+            console.error('Error deleting meetings:', error);
+            alert('Failed to delete some meetings. Please try again.');
+        }
     };
 
     if (loading) {
@@ -344,6 +406,45 @@ const ViewAllMeetings = () => {
                     </CardContent>
                 </Card>
 
+                {/* Bulk Actions Toolbar */}
+                {showBulkActions && (
+                    <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-sm font-medium text-blue-900">
+                                        {selectedItems.size} item(s) selected
+                                    </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedItems(new Set());
+                                            setShowBulkActions(false);
+                                        }}
+                                        className="text-gray-600 hover:text-gray-800"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleBulkDelete}
+                                        className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
+                                    >
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete Selected
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Meetings Table */}
                 <Card>
                     <CardContent className="p-0">
@@ -351,6 +452,14 @@ const ViewAllMeetings = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
+                                        <th className="px-6 py-3 text-left">
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                checked={selectedItems.size === paginatedMeetings.length && paginatedMeetings.length > 0}
+                                                onChange={(e) => handleSelectAll(e.target.checked)}
+                                            />
+                                        </th>
                                         <th 
                                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                                             onClick={() => handleSort('title')}
@@ -410,13 +519,21 @@ const ViewAllMeetings = () => {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {paginatedMeetings.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                                            <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                                                 {searchTerm ? 'No meetings found matching your search.' : 'No meetings found. Create your first meeting!'}
                                             </td>
                                         </tr>
                                     ) : (
                                         paginatedMeetings.map((meeting) => (
                                             <tr key={meeting.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                        checked={selectedItems.has(meeting.id)}
+                                                        onChange={(e) => handleSelectItem(meeting.id, e.target.checked)}
+                                                    />
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-gray-900">{meeting.title}</div>
                                                 </td>

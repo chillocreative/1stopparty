@@ -204,4 +204,59 @@ class MeetingController extends Controller
             'message' => 'Meeting deleted successfully',
         ]);
     }
+
+    /**
+     * Bulk delete multiple meetings.
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'ids' => 'required|array|min:1',
+                'ids.*' => 'required|integer|exists:meetings,id'
+            ]);
+
+            $meetingIds = $validated['ids'];
+            
+            // Get meetings with their files
+            $meetings = Meeting::whereIn('id', $meetingIds)->get();
+            
+            // Delete associated files
+            foreach ($meetings as $meeting) {
+                $filesToDelete = [
+                    $meeting->minit_mesyuarat_file,
+                    $meeting->penyata_kewangan_file,
+                    $meeting->aktiviti_file
+                ];
+
+                foreach ($filesToDelete as $filePath) {
+                    if ($filePath) {
+                        Storage::disk('public')->delete($filePath);
+                    }
+                }
+            }
+            
+            // Bulk delete meetings
+            $deletedCount = Meeting::whereIn('id', $meetingIds)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$deletedCount} meeting(s) deleted successfully",
+                'deleted_count' => $deletedCount
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error bulk deleting meetings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting meetings: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

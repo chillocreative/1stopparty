@@ -20,7 +20,6 @@ import ViewAllMembers from './pages/ViewAllMembers';
 import MembersDashboard from './pages/MembersDashboard';
 import MembersAnalysis from './pages/MembersAnalysis';
 import MembersUpload from './pages/MembersUpload';
-import PendingApproval from './pages/PendingApproval';
 import APISettings from './pages/APISettings';
 import ViewFinances from './pages/ViewFinances';
 import UploadFinanceFiles from './pages/UploadFinanceFiles';
@@ -103,8 +102,6 @@ if (dashboardElement) {
         ComponentToRender = MembersAnalysis;
     } else if (currentPath === '/members/upload') {
         ComponentToRender = MembersUpload;
-    } else if (currentPath === '/members/pending-approval') {
-        ComponentToRender = PendingApproval;
     } else if (currentPath === '/members/api-settings') {
         ComponentToRender = APISettings;
     } else if (currentPath === '/finances') {

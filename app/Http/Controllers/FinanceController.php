@@ -92,6 +92,55 @@ class FinanceController extends Controller
     }
 
     /**
+     * Parse file without saving (for preview)
+     */
+    public function parseFile(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'file' => 'required|file|mimes:pdf,xlsx,xls|max:10240', // 10MB max
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:2000|max:2100',
+            ]);
+
+            // Store the file temporarily
+            $file = $request->file('file');
+            $fileName = 'temp_finance_' . time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('temp_files', $fileName, 'public');
+            $fullPath = storage_path('app/public/' . $filePath);
+
+            // Parse file content based on file type
+            $fileExtension = strtolower($file->getClientOriginalExtension());
+            
+            if ($fileExtension === 'pdf') {
+                $content = $this->parsePdf($fullPath);
+                $financialData = $this->extractFinancialData($content, $validated['month'], $validated['year']);
+            } elseif (in_array($fileExtension, ['xlsx', 'xls'])) {
+                $financialData = $this->parseExcel($fullPath, $validated['month'], $validated['year']);
+            } else {
+                throw new \Exception('Unsupported file type');
+            }
+
+            // Clean up temporary file
+            Storage::disk('public')->delete($filePath);
+
+            // Return parsed data for preview (don't save yet)
+            return response()->json([
+                'success' => true,
+                'message' => 'File parsed successfully',
+                'data' => $financialData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error parsing file: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error parsing file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Upload and parse PDF file
      */
     public function uploadPdf(Request $request): JsonResponse
@@ -304,6 +353,130 @@ class FinanceController extends Controller
             'baki' => $baki,
             'details' => $details
         ];
+    }
+
+    /**
+     * Parse Excel file content
+     */
+    private function parseExcel(string $filePath, int $month, int $year): array
+    {
+        try {
+            // For basic Excel parsing, we'll look for common patterns
+            // In a production environment, you might want to use PhpSpreadsheet
+            
+            $months = [
+                1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MAC', 4 => 'APRIL',
+                5 => 'MEI', 6 => 'JUN', 7 => 'JULAI', 8 => 'OGOS',
+                9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DISEMBER'
+            ];
+
+            $monthName = $months[$month] ?? 'BULAN';
+            $title = "PENYATA KEWANGAN KEADILAN CABANG KEPALA BATAS BULAN {$monthName} {$year}";
+
+            // For now, return default structure for Excel files
+            // You would need to implement proper Excel reading logic here
+            return [
+                'title' => $title,
+                'wang_masuk' => 0,
+                'wang_keluar' => 0,
+                'baki' => 0,
+                'details' => [
+                    'income_items' => [],
+                    'expense_items' => [],
+                    'summary' => [
+                        'wang_masuk_peruntukan' => 0,
+                        'wang_keluar_perbelanjaan' => 0,
+                        'baki_di_tangan' => 0,
+                        'baki_di_bank' => 0,
+                        'jumlah_baki' => 0
+                    ]
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error parsing Excel: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Save finance data after user confirms
+     */
+    public function saveFinanceData(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:2000|max:2100',
+                'wang_masuk' => 'required|numeric|min:0',
+                'wang_keluar' => 'required|numeric|min:0',
+                'baki' => 'required|numeric',
+                'details' => 'nullable|array',
+                'file_data' => 'nullable|string', // Base64 encoded file data
+                'file_name' => 'nullable|string', // Original file name
+                'file_type' => 'nullable|string', // File type
+            ]);
+
+            // Check if record already exists for this month/year
+            $exists = Finance::where('month', $validated['month'])
+                ->where('year', $validated['year'])
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Finance record already exists for this month and year'
+                ], 422);
+            }
+
+            $filePath = null;
+            
+            // Save the file if file data is provided
+            if (!empty($validated['file_data']) && !empty($validated['file_name'])) {
+                try {
+                    // Decode base64 file data
+                    $fileData = base64_decode($validated['file_data']);
+                    
+                    // Generate unique filename
+                    $extension = pathinfo($validated['file_name'], PATHINFO_EXTENSION);
+                    $fileName = 'finance_' . $validated['month'] . '_' . $validated['year'] . '_' . time() . '.' . $extension;
+                    
+                    // Store file in public/finance_files directory
+                    $filePath = 'finance_files/' . $fileName;
+                    Storage::disk('public')->put($filePath, $fileData);
+                    
+                } catch (\Exception $e) {
+                    Log::error('Error saving file: ' . $e->getMessage());
+                    // Continue without file if file save fails
+                }
+            }
+
+            $finance = Finance::create([
+                'title' => $validated['title'],
+                'month' => $validated['month'],
+                'year' => $validated['year'],
+                'wang_masuk' => $validated['wang_masuk'],
+                'wang_keluar' => $validated['wang_keluar'],
+                'baki' => $validated['baki'],
+                'details' => $validated['details'] ?? null,
+                'file_path' => $filePath,
+                'uploaded_by' => Auth::id(),
+            ]);
+
+            $finance->load('uploader');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Finance record saved successfully',
+                'data' => $finance
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Error saving finance data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving finance data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

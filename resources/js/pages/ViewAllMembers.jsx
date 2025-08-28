@@ -13,10 +13,7 @@ const ViewAllMembers = () => {
   const [pagination, setPagination] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    gender: '',
-    state: '',
-    active_only: false,
-    status: 'approved' // Only show approved members by default
+    gender: ''
   });
   const [sortBy, setSortBy] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -72,10 +69,7 @@ const ViewAllMembers = () => {
         sort_by: sortBy,
         sort_direction: sortDirection,
         ...(searchTerm && { search: searchTerm }),
-        ...(filters.gender && { gender: filters.gender }),
-        ...(filters.state && { state: filters.state }),
-        ...(filters.active_only && { active_only: 'true' }),
-        ...(filters.status && { status: filters.status })
+        ...(filters.gender && { gender: filters.gender })
       });
 
       const response = await fetch(`/api/members?${params}`, {
@@ -265,67 +259,38 @@ const ViewAllMembers = () => {
           </div>
         )}
 
-        {/* Search and Filters */}
+        {/* Search and Filter */}
         <Card className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <Label htmlFor="search" className="text-sm font-medium text-gray-700">Search</Label>
-              <Input
-                id="search"
-                type="text"
-                placeholder="Search by name, IC, phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="mt-1"
-              />
+          <div className="flex flex-col sm:flex-row gap-6">
+            {/* Search Members */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Search</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by name, IC, phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+                <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+
+            {/* Filter by Gender */}
+            <div className="sm:w-64">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Gender</label>
               <select
-                id="status"
-                value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">All Status</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
-              <select
-                id="gender"
                 value={filters.gender}
                 onChange={(e) => setFilters({...filters, gender: e.target.value})}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All Genders</option>
                 <option value="M">Male</option>
                 <option value="F">Female</option>
               </select>
-            </div>
-            <div>
-              <Label htmlFor="state" className="text-sm font-medium text-gray-700">State</Label>
-              <Input
-                id="state"
-                type="text"
-                placeholder="Filter by state"
-                value={filters.state}
-                onChange={(e) => setFilters({...filters, state: e.target.value})}
-                className="mt-1"
-              />
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={filters.active_only}
-                  onChange={(e) => setFilters({...filters, active_only: e.target.checked})}
-                  className="mr-2 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Active only</span>
-              </label>
             </div>
           </div>
         </Card>
@@ -344,12 +309,13 @@ const ViewAllMembers = () => {
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO ANGGOTA</th>
                   <th 
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center">
-                      Name
+                      NAMA
                       {sortBy === 'name' && (
                         <svg className={`ml-1 h-4 w-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -357,26 +323,12 @@ const ViewAllMembers = () => {
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IC Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval</th>
-                  <th 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('created_at')}
-                  >
-                    <div className="flex items-center">
-                      Added
-                      {sortBy === 'created_at' && (
-                        <svg className={`ml-1 h-4 w-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      )}
-                    </div>
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KAD PENGENALAN</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BANGSA</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JANTINA</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MOBILE NUMBER</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ALAMAT</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RANTING</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -391,15 +343,15 @@ const ViewAllMembers = () => {
                           className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.member_no || '-'}</td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">{member.name}</div>
                         {member.age && (
-                          <div className="text-sm text-gray-500">Age: {member.age}</div>
+                          <div className="text-xs text-gray-500">Age: {member.age}</div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.ic_no}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatPhone(member.phone)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{member.email || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.race || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {member.gender ? (
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -411,38 +363,24 @@ const ViewAllMembers = () => {
                           <span className="text-gray-500">-</span>
                         )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatPhone(member.phone)}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        {member.city ? `${member.city}${member.state ? `, ${member.state}` : ''}` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {member.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          member.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                          member.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {member.status === 'approved' ? 'Approved' : 
-                           member.status === 'pending' ? 'Pending' : 
-                           'Rejected'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(member.created_at)}
-                        {member.uploader && (
-                          <div className="text-xs text-gray-500">by {member.uploader.name}</div>
+                        <div>{member.address || '-'}</div>
+                        {member.address_2 && (
+                          <div className="text-xs text-gray-500">{member.address_2}</div>
+                        )}
+                        {(member.city || member.state) && (
+                          <div className="text-xs text-gray-500">
+                            {member.city ? `${member.city}${member.state ? `, ${member.state}` : ''}` : member.state}
+                          </div>
                         )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{member.branch || '-'}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="10" className="px-6 py-12 text-center">
+                    <td colSpan="9" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

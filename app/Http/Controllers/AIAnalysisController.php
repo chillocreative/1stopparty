@@ -72,17 +72,30 @@ class AIAnalysisController extends Controller
             // Get API configuration
             $apiConfig = $settings->getApiConfig();
 
-            // Make API request to Deepseek
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiConfig['api_key'],
-                'Content-Type' => 'application/json',
-            ])->timeout(30)->post($apiConfig['base_url'] . '/chat/completions', [
-                'model' => $apiConfig['model'],
-                'messages' => $messages,
-                'max_tokens' => $apiConfig['max_tokens'],
-                'temperature' => $apiConfig['temperature'],
-                'stream' => false
-            ]);
+            // Make API request based on provider
+            if ($apiConfig['provider'] === 'openai') {
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiConfig['api_key'],
+                    'Content-Type' => 'application/json',
+                ])->timeout(30)->post($apiConfig['base_url'] . '/chat/completions', [
+                    'model' => $apiConfig['model'],
+                    'messages' => $messages,
+                    'max_tokens' => $apiConfig['max_tokens'],
+                    'temperature' => $apiConfig['temperature']
+                ]);
+            } else {
+                // Deepseek API request
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiConfig['api_key'],
+                    'Content-Type' => 'application/json',
+                ])->timeout(30)->post($apiConfig['base_url'] . '/chat/completions', [
+                    'model' => $apiConfig['model'],
+                    'messages' => $messages,
+                    'max_tokens' => $apiConfig['max_tokens'],
+                    'temperature' => $apiConfig['temperature'],
+                    'stream' => false
+                ]);
+            }
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -99,18 +112,39 @@ class AIAnalysisController extends Controller
                     ], 500);
                 }
             } else {
+                // Get more detailed error information
                 $errorData = $response->json();
                 $errorMessage = $errorData['error']['message'] ?? 'Unknown API error';
+                $statusCode = $response->status();
+                
+                // Log the full error for debugging
+                \Log::error($apiConfig['provider'] . ' API Error', [
+                    'provider' => $apiConfig['provider'],
+                    'status_code' => $statusCode,
+                    'response_body' => $response->body(),
+                    'error_data' => $errorData,
+                    'request_data' => [
+                        'model' => $apiConfig['model'],
+                        'max_tokens' => $apiConfig['max_tokens'],
+                        'temperature' => $apiConfig['temperature']
+                    ]
+                ]);
                 
                 return response()->json([
                     'success' => false,
-                    'message' => 'AI API Error: ' . $errorMessage
+                    'message' => 'AI API Error (HTTP ' . $statusCode . '): ' . $errorMessage
                 ], 500);
             }
         } catch (\Exception $e) {
+            // Log the actual error for debugging
+            \Log::error('AI Analysis Error: ' . $e->getMessage(), [
+                'user_message' => $request->message,
+                'error' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process AI request: ' . $e->getMessage()
+                'message' => 'I encountered an error while processing your request. Please try again or check your API settings. Error: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -120,7 +154,11 @@ class AIAnalysisController extends Controller
      */
     private function buildSystemPrompt($dashboardData = null)
     {
-        $prompt = "You are an AI analyst for a political party management system called '1 Stop Party System'. Your role is to analyze dashboard data and provide insights about the party's operations, user engagement, and system usage.\n\n";
+        $settings = AISettings::getActive();
+        $apiConfig = $settings ? $settings->getApiConfig() : ['provider' => 'unknown'];
+        $providerName = $apiConfig['provider'] === 'openai' ? 'OpenAI' : 'Deepseek';
+        
+        $prompt = "You are an AI analyst powered by {$providerName} for a political party management system called '1 Stop Party System'. Your role is to analyze dashboard data and provide insights about the party's operations, user engagement, and system usage.\n\n";
         
         $prompt .= "You have access to the following types of data:\n";
         $prompt .= "- User statistics (total users, roles distribution)\n";
@@ -132,7 +170,29 @@ class AIAnalysisController extends Controller
         if ($dashboardData && is_array($dashboardData)) {
             $prompt .= "Current Dashboard Statistics:\n";
             foreach ($dashboardData as $key => $value) {
-                $prompt .= "- " . ucfirst(str_replace('_', ' ', $key)) . ": " . $value . "\n";
+                // Handle arrays and objects properly
+                if (is_array($value)) {
+                    // Special handling for roles_distribution to make it more readable
+                    if ($key === 'roles_distribution') {
+                        $rolesList = [];
+                        foreach ($value as $roleName => $count) {
+                            $rolesList[] = "$roleName: $count";
+                        }
+                        $valueStr = implode(', ', $rolesList);
+                    } else {
+                        $valueStr = json_encode($value);
+                    }
+                } elseif (is_object($value)) {
+                    $valueStr = json_encode($value);
+                } elseif (is_bool($value)) {
+                    $valueStr = $value ? 'Yes' : 'No';
+                } elseif (is_null($value)) {
+                    $valueStr = 'N/A';
+                } else {
+                    $valueStr = (string) $value;
+                }
+                
+                $prompt .= "- " . ucfirst(str_replace('_', ' ', $key)) . ": " . $valueStr . "\n";
             }
             $prompt .= "\n";
         }

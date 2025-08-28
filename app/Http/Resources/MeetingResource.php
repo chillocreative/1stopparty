@@ -21,6 +21,10 @@ class MeetingResource extends JsonResource
             'time' => $this->time,
             'minit_mesyuarat_file' => $this->minit_mesyuarat_file,
             'minit_mesyuarat_file_url' => $this->minit_mesyuarat_file_url,
+            'penyata_kewangan_file' => $this->penyata_kewangan_file,
+            'penyata_kewangan_file_url' => $this->penyata_kewangan_file_url,
+            'aktiviti_file' => $this->aktiviti_file,
+            'aktiviti_file_url' => $this->aktiviti_file_url,
             'created_by' => $this->created_by,
             'creator' => $this->whenLoaded('creator', function () {
                 return [

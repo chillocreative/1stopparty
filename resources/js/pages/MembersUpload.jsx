@@ -17,6 +17,7 @@ const MembersUpload = () => {
   const [excludedRows, setExcludedRows] = useState([]);
   const [uploadError, setUploadError] = useState(null);
   const [importResults, setImportResults] = useState(null);
+  const [selectedDuplicates, setSelectedDuplicates] = useState([]);
 
   useEffect(() => {
     fetchUserData();
@@ -87,6 +88,7 @@ const MembersUpload = () => {
         body: formData,
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
         },
         credentials: 'same-origin'
       });
@@ -122,6 +124,52 @@ const MembersUpload = () => {
     });
   };
 
+  // Bulk selection handlers for duplicates
+  const handleSelectAllDuplicates = (checked) => {
+    if (checked) {
+      const allDuplicateRows = duplicates.map(duplicate => duplicate.row);
+      setSelectedDuplicates(allDuplicateRows);
+    } else {
+      setSelectedDuplicates([]);
+    }
+  };
+
+  const handleSelectDuplicate = (rowNumber) => {
+    setSelectedDuplicates(prev => {
+      if (prev.includes(rowNumber)) {
+        return prev.filter(row => row !== rowNumber);
+      } else {
+        return [...prev, rowNumber];
+      }
+    });
+  };
+
+  const handleBulkExcludeDuplicates = () => {
+    setExcludedRows(prev => {
+      const newExcluded = [...prev];
+      selectedDuplicates.forEach(rowNumber => {
+        if (!newExcluded.includes(rowNumber)) {
+          newExcluded.push(rowNumber);
+        }
+      });
+      return newExcluded;
+    });
+    setSelectedDuplicates([]); // Clear selection after excluding
+  };
+
+  const handleExcludeAllDuplicates = () => {
+    const allDuplicateRows = duplicates.map(duplicate => duplicate.row);
+    setExcludedRows(prev => {
+      const newExcluded = [...prev];
+      allDuplicateRows.forEach(rowNumber => {
+        if (!newExcluded.includes(rowNumber)) {
+          newExcluded.push(rowNumber);
+        }
+      });
+      return newExcluded;
+    });
+  };
+
   // Import members after duplicate resolution
   const importMembers = async () => {
     if (!processedData) return;
@@ -135,6 +183,7 @@ const MembersUpload = () => {
         headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
         },
         body: JSON.stringify({
           members_data: processedData.all_data,
@@ -172,6 +221,7 @@ const MembersUpload = () => {
     setExcludedRows([]);
     setUploadError(null);
     setImportResults(null);
+    setSelectedDuplicates([]);
   };
 
   if (loading) {
@@ -245,16 +295,21 @@ const MembersUpload = () => {
                   </div>
                 </div>
               )}
-              
+            </div>
+          </div>
+          
+          {/* Process File Button - Outside the drag area */}
+          {file && (
+            <div className="mt-6 flex justify-center">
               <Button 
                 onClick={processUpload} 
                 disabled={!file || uploadStep === 'processing'}
-                className="mt-4"
+                className="px-8 py-2"
               >
                 {uploadStep === 'processing' ? 'Processing...' : 'Process File'}
               </Button>
             </div>
-          </div>
+          )}
         </Card>
 
         {/* Error Message */}
@@ -297,16 +352,24 @@ const MembersUpload = () => {
             {/* Duplicates Handling */}
             {duplicates.length > 0 && (
               <Card className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Duplicate Entries ({duplicates.length})
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Duplicate Entries ({duplicates.length})
+                  </h3>
+                  <button
+                    onClick={handleExcludeAllDuplicates}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Exclude All
+                  </button>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   The following records have duplicates based on Name, IC Number, or Phone Number. 
                   Select which rows to exclude from import:
                 </p>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {duplicates.map((duplicate, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div key={index} className="border rounded-lg p-4 border-gray-200">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Row {duplicate.row}</div>
@@ -326,15 +389,18 @@ const MembersUpload = () => {
                             </div>
                           )}
                         </div>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={excludedRows.includes(duplicate.row)}
-                            onChange={() => toggleRowExclusion(duplicate.row)}
-                            className="mr-2"
-                          />
-                          <span className="text-sm text-gray-600">Exclude</span>
-                        </label>
+                        <div className="flex items-center space-x-3">
+                          {/* Individual exclude checkbox */}
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={excludedRows.includes(duplicate.row)}
+                              onChange={() => toggleRowExclusion(duplicate.row)}
+                              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded mr-2"
+                            />
+                            <span className="text-sm text-gray-600">Exclude</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   ))}

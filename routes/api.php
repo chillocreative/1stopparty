@@ -54,6 +54,8 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
     Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])
         ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::delete('meetings', [MeetingController::class, 'bulkDestroy'])
+        ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
 });
 
 // Events routes - Based on role permissions
@@ -75,6 +77,9 @@ Route::middleware(['web', 'auth'])->group(function () {
 
 // Members routes - Based on role permissions
 Route::middleware(['web', 'auth'])->group(function () {
+    // Dashboard analytics - All roles can view
+    Route::get('members/dashboard-analytics', [MemberController::class, 'getDashboardAnalytics']);
+    
     // View members - All roles can view
     Route::get('members', [MemberController::class, 'index']);
     Route::get('members/{member}', [MemberController::class, 'show']);
@@ -112,6 +117,8 @@ Route::middleware(['web', 'auth', 'role:Admin,Bendahari'])->group(function () {
     Route::get('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'show']);
     Route::post('finances', [App\Http\Controllers\FinanceController::class, 'store']);
     Route::post('finances/upload-pdf', [App\Http\Controllers\FinanceController::class, 'uploadPdf']);
+    Route::post('finances/parse-file', [App\Http\Controllers\FinanceController::class, 'parseFile']);
+    Route::post('finances/save-data', [App\Http\Controllers\FinanceController::class, 'saveFinanceData']);
     Route::put('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'update']);
     Route::delete('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'destroy']);
 });

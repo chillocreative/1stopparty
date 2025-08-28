@@ -388,7 +388,7 @@ class MemberController extends Controller
             'ic_no' => ['ic_no', 'ic', 'nric', 'ic number', 'kad pengenalan', 'no ic', 'identity card'],
             'phone' => ['phone', 'mobile', 'telefon', 'phone number', 'mobile number', 'no telefon'],
             'email' => ['email', 'email address', 'e-mail', 'emel'],
-            'address' => ['address', 'alamat', 'home address'],
+            'address' => ['address', 'alamat', 'home address', 'alamat 1'],
             'postcode' => ['postcode', 'poskod', 'zip', 'postal code'],
             'city' => ['city', 'bandar', 'town'],
             'state' => ['state', 'negeri'],
@@ -398,6 +398,11 @@ class MemberController extends Controller
             'membership_type' => ['membership_type', 'jenis keahlian', 'member_type'],
             'join_date' => ['join_date', 'tarikh sertai', 'date_joined'],
             'remarks' => ['remarks', 'notes', 'catatan'],
+            // New fields for your Excel format
+            'member_no' => ['no anggota', 'member no', 'no. anggota', 'membership no'],
+            'race' => ['bangsa', 'race', 'ethnicity'],
+            'address_2' => ['alamat 2', 'alamat2', 'address 2', 'address2'],
+            'branch' => ['ranting', 'branch', 'cawangan'],
         ];
 
         $memberData = [];
@@ -440,6 +445,11 @@ class MemberController extends Controller
             }
             
             $memberData[$field] = $value ?: null;
+        }
+
+        // Combine address fields if both address and address_2 exist
+        if (!empty($memberData['address']) && !empty($memberData['address_2'])) {
+            $memberData['address'] = trim($memberData['address'] . ', ' . $memberData['address_2']);
         }
 
         return $memberData;
@@ -578,5 +588,152 @@ class MemberController extends Controller
             'rejected_count' => $rejectedCount,
             'errors' => $errors,
         ]);
+    }
+
+    /**
+     * Get member dashboard analytics
+     */
+    public function getDashboardAnalytics()
+    {
+        try {
+            $now = now();
+            $lastMonth = $now->copy()->subMonth();
+            
+            // Total members statistics
+            $totalMembers = Member::count();
+            $approvedMembers = Member::where('status', 'approved')->count();
+            $pendingMembers = Member::where('status', 'pending')->count();
+            $newThisMonth = Member::where('created_at', '>=', $lastMonth)->count();
+            
+            // Gender distribution
+            $genderDistribution = Member::selectRaw('gender, COUNT(*) as count')
+                ->whereNotNull('gender')
+                ->groupBy('gender')
+                ->pluck('count', 'gender')
+                ->toArray();
+            
+            // Race distribution
+            $raceDistribution = Member::selectRaw('race, COUNT(*) as count')
+                ->whereNotNull('race')
+                ->groupBy('race')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->pluck('count', 'race')
+                ->toArray();
+            
+            // Branch distribution
+            $branchDistribution = Member::selectRaw('branch, COUNT(*) as count')
+                ->whereNotNull('branch')
+                ->groupBy('branch')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->pluck('count', 'branch')
+                ->toArray();
+            
+            // Age groups (calculated from IC numbers)
+            $ageGroups = [
+                '18-25' => 0,
+                '26-35' => 0,
+                '36-45' => 0,
+                '46-55' => 0,
+                '56-65' => 0,
+                '65+' => 0,
+                'Unknown' => 0
+            ];
+            
+            $members = Member::whereNotNull('ic_no')->get(['ic_no']);
+            foreach ($members as $member) {
+                $age = $this->calculateAgeFromIC($member->ic_no);
+                if ($age === null) {
+                    $ageGroups['Unknown']++;
+                } elseif ($age < 26) {
+                    $ageGroups['18-25']++;
+                } elseif ($age < 36) {
+                    $ageGroups['26-35']++;
+                } elseif ($age < 46) {
+                    $ageGroups['36-45']++;
+                } elseif ($age < 56) {
+                    $ageGroups['46-55']++;
+                } elseif ($age < 66) {
+                    $ageGroups['56-65']++;
+                } else {
+                    $ageGroups['65+']++;
+                }
+            }
+            
+            // Monthly registration trends (last 6 months)
+            $monthlyTrends = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $date = $now->copy()->subMonths($i);
+                $monthName = $date->format('M Y');
+                $count = Member::whereYear('created_at', $date->year)
+                    ->whereMonth('created_at', $date->month)
+                    ->count();
+                $monthlyTrends[$monthName] = $count;
+            }
+            
+            // State distribution
+            $stateDistribution = Member::selectRaw('state, COUNT(*) as count')
+                ->whereNotNull('state')
+                ->groupBy('state')
+                ->orderByDesc('count')
+                ->limit(10)
+                ->pluck('count', 'state')
+                ->toArray();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_members' => $totalMembers,
+                    'approved_members' => $approvedMembers,
+                    'pending_members' => $pendingMembers,
+                    'new_this_month' => $newThisMonth,
+                    'gender_distribution' => $genderDistribution,
+                    'race_distribution' => $raceDistribution,
+                    'branch_distribution' => $branchDistribution,
+                    'age_groups' => $ageGroups,
+                    'monthly_trends' => $monthlyTrends,
+                    'state_distribution' => $stateDistribution,
+                    'membership_types' => Member::selectRaw('membership_type, COUNT(*) as count')
+                        ->whereNotNull('membership_type')
+                        ->groupBy('membership_type')
+                        ->pluck('count', 'membership_type')
+                        ->toArray()
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch dashboard analytics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Calculate age from Malaysian IC number
+     */
+    private function calculateAgeFromIC($icNumber)
+    {
+        if (strlen($icNumber) !== 12) {
+            return null;
+        }
+        
+        $year = substr($icNumber, 0, 2);
+        $month = substr($icNumber, 2, 2);
+        $day = substr($icNumber, 4, 2);
+        
+        // Determine century
+        $currentYear = date('Y');
+        $century = $year <= (($currentYear - 2000) + 10) ? '20' : '19';
+        $fullYear = $century . $year;
+        
+        try {
+            $birthDate = new \DateTime("$fullYear-$month-$day");
+            $today = new \DateTime();
+            $age = $today->diff($birthDate)->y;
+            return $age;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

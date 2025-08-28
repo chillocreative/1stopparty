@@ -12,6 +12,10 @@ const UploadFinanceFiles = () => {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState(null);
     const [error, setError] = useState('');
+    const [editableData, setEditableData] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [step, setStep] = useState(1); // 1: Upload, 2: Preview/Edit, 3: Success
+    const [originalFileData, setOriginalFileData] = useState(null); // Store original file for saving
 
     const months = [
         { value: 1, label: 'Januari' },
@@ -29,13 +33,22 @@ const UploadFinanceFiles = () => {
     ];
 
     const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+    // Create years from 2030 down to current year minus 10 years
+    const maxYear = Math.max(2030, currentYear);
+    const minYear = currentYear - 10;
+    const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i);
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            if (selectedFile.type !== 'application/pdf') {
-                setError('Please select a PDF file only');
+            const allowedTypes = [
+                'application/pdf',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+                'application/vnd.ms-excel' // .xls
+            ];
+            
+            if (!allowedTypes.includes(selectedFile.type)) {
+                setError('Please select a PDF, XLSX, or XLS file only');
                 setFile(null);
                 return;
             }
@@ -46,6 +59,18 @@ const UploadFinanceFiles = () => {
             }
             setFile(selectedFile);
             setError('');
+            
+            // Store file data for later saving
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result.split(',')[1]; // Remove data:type;base64, prefix
+                setOriginalFileData({
+                    data: base64Data,
+                    name: selectedFile.name,
+                    type: selectedFile.type
+                });
+            };
+            reader.readAsDataURL(selectedFile);
         }
     };
 
@@ -66,7 +91,7 @@ const UploadFinanceFiles = () => {
         formData.append('year', year);
 
         try {
-            const response = await fetch('/api/finances/upload-pdf', {
+            const response = await fetch('/api/finances/parse-file', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -81,27 +106,84 @@ const UploadFinanceFiles = () => {
                 throw new Error(data.message || `HTTP error! status: ${response.status}`);
             }
 
-            // Show preview of extracted data
-            setPreview(data.data);
-            alert('PDF uploaded and processed successfully!');
-            
-            // Reset form after successful upload
-            setTimeout(() => {
-                setFile(null);
-                setMonth('');
-                setYear(new Date().getFullYear());
-                setPreview(null);
-                // Reset file input
-                const fileInput = document.getElementById('pdf-file');
-                if (fileInput) fileInput.value = '';
-            }, 3000);
+            // Set editable data and move to preview step
+            setEditableData({
+                title: data.data.title,
+                month: parseInt(month),
+                year: parseInt(year),
+                wang_masuk: data.data.wang_masuk,
+                wang_keluar: data.data.wang_keluar,
+                baki: data.data.baki,
+                details: data.data.details
+            });
+            setStep(2);
             
         } catch (err) {
-            console.error('Error uploading PDF:', err);
-            setError(err.message || 'Failed to upload PDF');
+            console.error('Error parsing file:', err);
+            setError(err.message || 'Failed to parse file');
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleSaveData = async () => {
+        if (!editableData) {
+            setError('No data to save');
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            // Include original file data for saving
+            const dataToSave = {
+                ...editableData,
+                file_data: originalFileData?.data || null,
+                file_name: originalFileData?.name || null,
+                file_type: originalFileData?.type || null
+            };
+
+            const response = await fetch('/api/finances/save-data', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify(dataToSave)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+
+            setStep(3);
+            alert('Finance data saved successfully!');
+            
+        } catch (err) {
+            console.error('Error saving data:', err);
+            setError(err.message || 'Failed to save data');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleReset = () => {
+        setFile(null);
+        setMonth('');
+        setYear(new Date().getFullYear());
+        setEditableData(null);
+        setPreview(null);
+        setError('');
+        setStep(1);
+        setOriginalFileData(null);
+        // Reset file input
+        const fileInput = document.getElementById('pdf-file');
+        if (fileInput) fileInput.value = '';
     };
 
     const formatCurrency = (amount) => {
@@ -133,10 +215,11 @@ const UploadFinanceFiles = () => {
                     </Button>
                 </div>
 
-                {/* Upload Form */}
-                <Card>
-                    <CardContent className="p-6">
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Upload Form - Step 1 */}
+                {step === 1 && (
+                    <Card>
+                        <CardContent className="p-6">
+                            <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Month and Year Selection */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -219,13 +302,13 @@ const UploadFinanceFiles = () => {
                                                     <p className="mb-2 text-sm text-gray-500">
                                                         <span className="font-semibold">Click to upload</span> or drag and drop
                                                     </p>
-                                                    <p className="text-xs text-gray-500">PDF files only (MAX. 10MB)</p>
+                                                    <p className="text-xs text-gray-500">PDF, XLSX, or XLS files only (MAX. 10MB)</p>
                                                 </div>
                                             )}
                                             <input
                                                 id="pdf-file"
                                                 type="file"
-                                                accept=".pdf,application/pdf"
+                                                accept=".pdf,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                                 onChange={handleFileChange}
                                                 className="hidden"
                                                 required
@@ -262,53 +345,196 @@ const UploadFinanceFiles = () => {
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                             </svg>
-                                            Upload and Process PDF
+                                            Parse File
                                         </>
                                     )}
                                 </Button>
                             </div>
                         </form>
+                        </CardContent>
+                    </Card>
+                )}
 
-                        {/* Preview of Extracted Data */}
-                        {preview && (
-                            <div className="mt-8 pt-8 border-t">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Extracted Data Preview</h3>
-                                <div className="bg-gray-50 p-6 rounded-lg">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Step 2: Preview and Edit Extracted Data */}
+                {step === 2 && editableData && (
+                    <Card>
+                        <CardContent className="p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-semibold text-gray-900">Review and Edit Financial Data</h3>
+                                    <Button
+                                        onClick={handleReset}
+                                        variant="outline"
+                                        size="sm"
+                                    >
+                                        Start Over
+                                    </Button>
+                                </div>
+                                
+                                <div className="space-y-6">
+                                    {/* Title Field */}
+                                    <div>
+                                        <Label htmlFor="edit-title" className="text-sm font-medium text-gray-700 mb-2">
+                                            Title
+                                        </Label>
+                                        <Input
+                                            id="edit-title"
+                                            value={editableData.title}
+                                            onChange={(e) => setEditableData(prev => ({ ...prev, title: e.target.value }))}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    {/* Financial Values */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div>
-                                            <p className="text-sm text-gray-600">Title:</p>
-                                            <p className="text-sm font-medium text-gray-900 mt-1">{preview.title}</p>
+                                            <Label htmlFor="edit-wang-masuk" className="text-sm font-medium text-gray-700 mb-2">
+                                                Wang Masuk (RM)
+                                            </Label>
+                                            <Input
+                                                id="edit-wang-masuk"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={editableData.wang_masuk}
+                                                onChange={(e) => {
+                                                    const wangMasuk = parseFloat(e.target.value) || 0;
+                                                    setEditableData(prev => ({
+                                                        ...prev,
+                                                        wang_masuk: wangMasuk,
+                                                        baki: wangMasuk - prev.wang_keluar
+                                                    }));
+                                                }}
+                                                className="w-full"
+                                            />
                                         </div>
+
                                         <div>
-                                            <p className="text-sm text-gray-600">Period:</p>
-                                            <p className="text-sm font-medium text-gray-900 mt-1">
-                                                {months.find(m => m.value == preview.month)?.label} {preview.year}
-                                            </p>
+                                            <Label htmlFor="edit-wang-keluar" className="text-sm font-medium text-gray-700 mb-2">
+                                                Wang Keluar (RM)
+                                            </Label>
+                                            <Input
+                                                id="edit-wang-keluar"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={editableData.wang_keluar}
+                                                onChange={(e) => {
+                                                    const wangKeluar = parseFloat(e.target.value) || 0;
+                                                    setEditableData(prev => ({
+                                                        ...prev,
+                                                        wang_keluar: wangKeluar,
+                                                        baki: prev.wang_masuk - wangKeluar
+                                                    }));
+                                                }}
+                                                className="w-full"
+                                            />
                                         </div>
+
                                         <div>
-                                            <p className="text-sm text-gray-600">Jumlah Wang Masuk:</p>
-                                            <p className="text-lg font-bold text-green-600 mt-1">
-                                                {formatCurrency(preview.wang_masuk)}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Jumlah Wang Keluar:</p>
-                                            <p className="text-lg font-bold text-red-600 mt-1">
-                                                {formatCurrency(preview.wang_keluar)}
-                                            </p>
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <p className="text-sm text-gray-600">Baki:</p>
-                                            <p className={`text-xl font-bold mt-1 ${preview.baki >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                                                {formatCurrency(preview.baki)}
-                                            </p>
+                                            <Label htmlFor="edit-baki" className="text-sm font-medium text-gray-700 mb-2">
+                                                Baki (RM)
+                                            </Label>
+                                            <Input
+                                                id="edit-baki"
+                                                type="number"
+                                                step="0.01"
+                                                value={editableData.baki}
+                                                onChange={(e) => setEditableData(prev => ({ ...prev, baki: parseFloat(e.target.value) || 0 }))}
+                                                className="w-full"
+                                            />
                                         </div>
                                     </div>
+
+                                    {/* Summary Display */}
+                                    <div className="bg-blue-50 p-6 rounded-lg">
+                                        <h4 className="font-semibold text-blue-900 mb-4">Financial Summary</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="text-center">
+                                                <p className="text-sm text-blue-700">Wang Masuk</p>
+                                                <p className="text-xl font-bold text-green-600">
+                                                    {formatCurrency(editableData.wang_masuk)}
+                                                </p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm text-blue-700">Wang Keluar</p>
+                                                <p className="text-xl font-bold text-red-600">
+                                                    {formatCurrency(editableData.wang_keluar)}
+                                                </p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm text-blue-700">Baki</p>
+                                                <p className={`text-2xl font-bold ${editableData.baki >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                                    {formatCurrency(editableData.baki)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end space-x-4">
+                                        <Button
+                                            onClick={() => setStep(1)}
+                                            variant="outline"
+                                        >
+                                            Back to Upload
+                                        </Button>
+                                        <Button
+                                            onClick={handleSaveData}
+                                            disabled={saving}
+                                            className="bg-green-600 hover:bg-green-700"
+                                        >
+                                            {saving ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Save to Finances
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Step 3: Success Message */}
+                {step === 3 && (
+                    <Card>
+                        <CardContent className="p-6">
+                                <div className="bg-green-50 p-6 rounded-lg text-center">
+                                    <svg className="w-16 h-16 mx-auto text-green-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h3 className="text-lg font-semibold text-green-900 mb-2">Success!</h3>
+                                    <p className="text-green-800 mb-6">Your financial data has been saved successfully and is now available in View Finances.</p>
+                                    <div className="space-x-4">
+                                        <Button
+                                            onClick={handleReset}
+                                            variant="outline"
+                                            className="border-green-300 text-green-700 hover:bg-green-100"
+                                        >
+                                            Upload Another File
+                                        </Button>
+                                        <Button
+                                            onClick={() => window.location.href = '/finances'}
+                                            className="bg-green-600 hover:bg-green-700"
+                                        >
+                                            View Finances
+                                        </Button>
+                                    </div>
+                                </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Instructions */}
                 <Card>
@@ -326,23 +552,27 @@ const UploadFinanceFiles = () => {
                             </li>
                             <li className="flex items-start">
                                 <span className="text-blue-600 mr-2">•</span>
-                                <span>Upload only PDF format files with a maximum size of 10MB</span>
+                                <span>Upload PDF, XLSX, or XLS files with a maximum size of 10MB</span>
                             </li>
                             <li className="flex items-start">
                                 <span className="text-blue-600 mr-2">•</span>
-                                <span>The system will automatically extract "JUMLAH KESELURUHAN" for Wang Masuk and Wang Keluar</span>
+                                <span>The system will parse the file and extract Wang Masuk, Wang Keluar, and Baki</span>
                             </li>
                             <li className="flex items-start">
                                 <span className="text-blue-600 mr-2">•</span>
-                                <span>The title will be generated as: PENYATA KEWANGAN KEADILAN CABANG KEPALA BATAS BULAN [MONTH] [YEAR]</span>
+                                <span>Review and edit the extracted values before saving to ensure accuracy</span>
                             </li>
                             <li className="flex items-start">
                                 <span className="text-blue-600 mr-2">•</span>
-                                <span>Baki (balance) will be calculated automatically as: Wang Masuk - Wang Keluar</span>
+                                <span>The title will be auto-generated as: PENYATA KEWANGAN KEADILAN CABANG KEPALA BATAS BULAN [MONTH] [YEAR]</span>
                             </li>
                             <li className="flex items-start">
                                 <span className="text-blue-600 mr-2">•</span>
-                                <span>You can only upload one financial statement per month/year combination</span>
+                                <span>Baki will be automatically calculated based on Wang Masuk - Wang Keluar</span>
+                            </li>
+                            <li className="flex items-start">
+                                <span className="text-blue-600 mr-2">•</span>
+                                <span>Click "Save to Finances" only after verifying all values are correct</span>
                             </li>
                         </ul>
                     </CardContent>

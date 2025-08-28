@@ -52,20 +52,23 @@ const MembersAnalysis = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/dashboard/cards', {
+      // Fetch member-specific dashboard analytics
+      const response = await fetch('/api/members/dashboard-analytics', {
         headers: {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        credentials: 'include'
+        credentials: 'same-origin'
       });
 
       if (response.ok) {
         const data = await response.json();
-        setDashboardData(data);
+        if (data.success) {
+          setDashboardData(data.data);
+        }
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error fetching member dashboard data:', error);
     }
   };
 
@@ -81,14 +84,22 @@ const MembersAnalysis = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setApiConfigured(data.configured);
+        setApiConfigured(data.success && data.configured);
         
-        if (data.configured) {
+        if (data.success && data.configured) {
           // Add welcome message
           setMessages([{
             id: Date.now(),
             role: 'assistant',
             content: `Hello ${user?.name || 'there'}! I'm your AI analyst powered by Deepseek. I can help you analyze your dashboard data and answer questions about your system statistics. What would you like to know?`,
+            timestamp: new Date()
+          }]);
+        } else if (data.configured && !data.success) {
+          // API is configured but not working
+          setMessages([{
+            id: Date.now(),
+            role: 'assistant',
+            content: `⚠️ **API Connection Issue**\n\nYour Deepseek API is configured but I'm having trouble connecting to it. ${data.message || 'Please check your API settings and try again.'}\n\n[Check API Settings](/members/api-settings)`,
             timestamp: new Date()
           }]);
         }
@@ -143,7 +154,7 @@ const MembersAnalysis = () => {
         const errorMessage = {
           id: Date.now() + 1,
           role: 'assistant',
-          content: 'I apologize, but I encountered an error while processing your request. Please try again or check your API settings.',
+          content: `⚠️ **Error Processing Request**\n\n${data.message || 'I encountered an error while processing your request.'}\n\n**Troubleshooting:**\n- Check if your Deepseek API key is valid\n- Verify you have sufficient API credits\n- Try testing the connection in [API Settings](/members/api-settings)`,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -153,7 +164,7 @@ const MembersAnalysis = () => {
       const errorMessage = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: 'I apologize, but I encountered a network error. Please check your connection and try again.',
+        content: `⚠️ **Connection Error**\n\nI'm unable to connect to the AI service right now. This could be due to:\n- Network connectivity issues\n- API service temporarily unavailable\n- Invalid API configuration\n\nPlease try again in a few moments or check your [API Settings](/members/api-settings).`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);

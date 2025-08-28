@@ -58,7 +58,7 @@ class Meeting extends Model
     /**
      * Get the aktiviti file URL.
      */
-    protected function getAktifitiFileUrlAttribute(): ?string
+    protected function getAktivitiFileUrlAttribute(): ?string
     {
         return $this->getFileUrl($this->aktiviti_file);
     }

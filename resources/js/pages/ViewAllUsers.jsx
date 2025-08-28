@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Card } from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -472,12 +472,6 @@ const ViewAllUsers = () => {
                   <option disabled>Loading roles...</option>
                 )}
               </select>
-              {/* Debug info - remove after fixing */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Roles loaded: {roles.length} | Selected: {selectedRole}
-                </div>
-              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-500 mb-1">Showing Results</p>
@@ -491,40 +485,42 @@ const ViewAllUsers = () => {
           </div>
         </Card>
 
-        {/* Bulk Actions Toolbar */}
-        {showBulkActions && (
-          <Card className="p-4 bg-blue-50 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-blue-900">
-                  {selectedItems.size} item(s) selected
-                </span>
+        {/* Bulk Actions - Only show when items are selected */}
+        {selectedItems.size > 0 && (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedItems.size} item(s) selected
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedItems(new Set());
+                      setShowBulkActions(false);
+                    }}
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Selected
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedItems(new Set());
-                    setShowBulkActions(false);
-                  }}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Delete Selected
-                </Button>
-              </div>
-            </div>
+            </CardContent>
           </Card>
         )}
 
