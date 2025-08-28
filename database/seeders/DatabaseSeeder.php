@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             MeetingSeeder::class,
+            EventCategorySeeder::class,
             EventSeeder::class,
             MemberSeeder::class,
             FinanceSeeder::class,

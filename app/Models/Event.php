@@ -21,7 +21,7 @@ class Event extends Model
         'location',
         'event_date',
         'event_time',
-        'category',
+        'category_id',
         'created_by',
     ];
 
@@ -44,5 +44,13 @@ class Event extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the category that the event belongs to.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(EventCategory::class, 'category_id');
     }
 }

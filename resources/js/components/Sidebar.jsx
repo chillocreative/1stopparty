@@ -11,7 +11,9 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
 
     menuItems.forEach(item => {
       if (item.hasSubmenu && item.submenu) {
-        const hasActiveSubmenu = item.submenu.some(sub => currentPath === sub.id);
+        const hasActiveSubmenu = item.submenu.some(sub => 
+          currentPath === sub.path || currentPath === sub.id
+        );
         if (hasActiveSubmenu) {
           newExpandedState[item.id] = true;
         }
@@ -135,27 +137,49 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
       label: 'Events',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0A2.717 2.717 0 004.5 16c0 .411.095.82.27 1.194l1.726 3.727a2.717 2.717 0 002.538 1.754h5.932a2.717 2.717 0 002.538-1.754l1.726-3.727c.175-.374.27-.783.27-1.194z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9l2 2 4-4" />
         </svg>
       ),
-      path: '/events',
-      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
+      hasSubmenu: true,
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa'],
+      submenu: [
+        {
+          id: 'view-all-events',
+          label: 'View All Events',
+          path: '/events',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          )
+        },
+        {
+          id: 'create-event',
+          label: 'Create Event',
+          path: '/events/create',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          ),
+          roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+        },
+        {
+          id: 'event-categories',
+          label: 'Event Categories',
+          path: '/event-categories',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          ),
+          roles: ['Admin']
+        }
+      ]
     });
 
-    // Members - View access for all, manage access for specific roles
-    menuItems.push({
-      id: 'members',
-      label: 'Members',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
-      path: '/members',
-      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
-    });
-
-    // Finances - Only for Admin and Bendahari
+    // Finances - Only for Admin and Bendahari (positioned above Members)
     if (['Admin', 'Bendahari'].includes(userRole)) {
       menuItems.push({
         id: 'finances',
@@ -169,6 +193,19 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         roles: ['Admin', 'Bendahari']
       });
     }
+
+    // Members - View access for all, manage access for specific roles
+    menuItems.push({
+      id: 'members',
+      label: 'Members',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+      path: '/members',
+      roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita', 'AJK Cabang', 'Anggota Biasa']
+    });
 
     // Profile - All users (moved to bottom)
     menuItems.push({
@@ -316,16 +353,18 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
               {/* Submenu Items */}
               {item.hasSubmenu && !isCollapsed && (shouldBeExpanded) && (
                 <div className="ml-8 mt-1 space-y-1">
-                  {item.submenu?.map((submenuItem) => (
+                  {item.submenu?.filter(submenuItem => 
+                    !submenuItem.roles || submenuItem.roles.includes(normalizedRole || 'Admin')
+                  ).map((submenuItem) => (
                     <button
                       key={submenuItem.id}
                       onClick={() => handleSubmenuClick(submenuItem, item.id)}
-                      className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${currentPath === submenuItem.id
+                      className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${(currentPath === submenuItem.path || currentPath === submenuItem.id)
                           ? 'bg-gray-100 text-gray-900 font-medium'
                           : 'text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                      <span className={`flex-shrink-0 ${currentPath === submenuItem.id ? 'text-gray-600' : 'text-gray-400'}`}>
+                      <span className={`flex-shrink-0 ${(currentPath === submenuItem.path || currentPath === submenuItem.id) ? 'text-gray-600' : 'text-gray-400'}`}>
                         {submenuItem.icon}
                       </span>
                       <span className="font-medium">{submenuItem.label}</span>

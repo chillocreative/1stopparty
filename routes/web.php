@@ -65,6 +65,26 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::delete('/api/meeting-categories/{meetingCategory}', [App\Http\Controllers\MeetingCategoryController::class, 'destroy'])->middleware('role:Admin');
 });
 
+// Event Categories API routes for React frontend (using web sessions)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/api/event-categories', [App\Http\Controllers\EventCategoryController::class, 'index']);
+    Route::post('/api/event-categories', [App\Http\Controllers\EventCategoryController::class, 'store'])->middleware('role:Admin');
+    Route::get('/api/event-categories/{eventCategory}', [App\Http\Controllers\EventCategoryController::class, 'show']);
+    Route::put('/api/event-categories/{eventCategory}', [App\Http\Controllers\EventCategoryController::class, 'update'])->middleware('role:Admin');
+    Route::patch('/api/event-categories/{eventCategory}', [App\Http\Controllers\EventCategoryController::class, 'update'])->middleware('role:Admin');
+    Route::delete('/api/event-categories/{eventCategory}', [App\Http\Controllers\EventCategoryController::class, 'destroy'])->middleware('role:Admin');
+});
+
+// Events API routes for React frontend (using web sessions) 
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/api/events', [App\Http\Controllers\EventController::class, 'index']);
+    Route::post('/api/events', [App\Http\Controllers\EventController::class, 'store'])->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::get('/api/events/{event}', [App\Http\Controllers\EventController::class, 'show']);
+    Route::put('/api/events/{event}', [App\Http\Controllers\EventController::class, 'update'])->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::patch('/api/events/{event}', [App\Http\Controllers\EventController::class, 'update'])->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::delete('/api/events/{event}', [App\Http\Controllers\EventController::class, 'destroy'])->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+});
+
 
 
 // Temporary route for database setup (remove in production)
@@ -120,12 +140,142 @@ Route::get('/setup-database', function () {
             }
         }
 
+        // Create event_categories table
+        $results[] = "Creating event_categories table...";
+        try {
+            $createCategoriesTable = "
+            CREATE TABLE IF NOT EXISTS event_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                description TEXT,
+                color VARCHAR(7) NOT NULL DEFAULT '#3B82F6',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )";
+            
+            $pdo->exec($createCategoriesTable);
+            $results[] = "Event categories table created successfully!";
+        } catch (PDOException $e) {
+            $results[] = "Error creating event_categories table: " . $e->getMessage();
+        }
+
+        // Update events table to add category_id column
+        try {
+            $pdo->exec("ALTER TABLE events ADD COLUMN category_id INTEGER REFERENCES event_categories(id) ON DELETE SET NULL");
+            $results[] = "Added category_id column to events table!";
+        } catch (PDOException $e) {
+            $results[] = "Category_id column may already exist: " . $e->getMessage();
+        }
+
+        // Seed event categories
+        $results[] = "Seeding event categories...";
+        $categories = [
+            ['name' => 'Program Cabang', 'description' => 'Events related to branch programs and activities', 'color' => '#3B82F6'],
+            ['name' => 'Program Wanita', 'description' => 'Women\'s programs and activities', 'color' => '#EC4899'],
+            ['name' => 'Program AMK', 'description' => 'AMK programs and activities', 'color' => '#10B981'],
+            ['name' => 'Program Ahli Majlis', 'description' => 'Council member programs and activities', 'color' => '#F59E0B'],
+            ['name' => 'Program MPKK', 'description' => 'MPKK programs and activities', 'color' => '#8B5CF6'],
+            ['name' => 'Program JPWK', 'description' => 'JPWK programs and activities', 'color' => '#EF4444'],
+            ['name' => 'Program JBPP', 'description' => 'JBPP programs and activities', 'color' => '#06B6D4'],
+        ];
+
+        foreach ($categories as $category) {
+            try {
+                $stmt = $pdo->prepare("INSERT OR IGNORE INTO event_categories (name, description, color) VALUES (?, ?, ?)");
+                $stmt->execute([$category['name'], $category['description'], $category['color']]);
+                $results[] = "Added category: " . $category['name'];
+            } catch (PDOException $e) {
+                $results[] = "Error adding category " . $category['name'] . ": " . $e->getMessage();
+            }
+        }
+
         $results[] = "Database setup completed!";
 
         return response()->json([
             'success' => true,
             'results' => $results
         ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Temporary debug route for event categories setup
+Route::get('/debug-events-setup', function () {
+    try {
+        $pdo = new PDO('sqlite:database/database.sqlite');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $results = [];
+        $results[] = "Checking existing tables...";
+        
+        $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll();
+        
+        foreach ($tables as $table) {
+            $results[] = "Table: " . $table['name'];
+        }
+
+        // Check if event_categories table exists
+        try {
+            $result = $pdo->query("SELECT COUNT(*) FROM event_categories")->fetchColumn();
+            $results[] = "Event categories table exists with $result rows";
+        } catch (Exception $e) {
+            $results[] = "Event categories table does not exist - creating it...";
+            
+            // Create the table
+            $createTable = "
+            CREATE TABLE event_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                description TEXT,
+                color VARCHAR(7) NOT NULL DEFAULT '#3B82F6',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )";
+            
+            $pdo->exec($createTable);
+            $results[] = "Event categories table created!";
+            
+            // Insert default categories
+            $categories = [
+                ['Program Cabang', 'Events related to branch programs and activities', '#3B82F6'],
+                ['Program Wanita', 'Women\'s programs and activities', '#EC4899'],
+                ['Program AMK', 'AMK programs and activities', '#10B981'],
+                ['Program Ahli Majlis', 'Council member programs and activities', '#F59E0B'],
+                ['Program MPKK', 'MPKK programs and activities', '#8B5CF6'],
+                ['Program JPWK', 'JPWK programs and activities', '#EF4444'],
+                ['Program JBPP', 'JBPP programs and activities', '#06B6D4'],
+            ];
+            
+            foreach ($categories as $category) {
+                $stmt = $pdo->prepare("INSERT INTO event_categories (name, description, color) VALUES (?, ?, ?)");
+                $stmt->execute($category);
+                $results[] = "Added category: " . $category[0];
+            }
+        }
+
+        // Also add category_id to events table if it doesn't exist
+        try {
+            $pdo->query("SELECT category_id FROM events LIMIT 1");
+            $results[] = "Events table already has category_id column";
+        } catch (Exception $e) {
+            $results[] = "Adding category_id column to events table...";
+            try {
+                $pdo->exec("ALTER TABLE events ADD COLUMN category_id INTEGER REFERENCES event_categories(id) ON DELETE SET NULL");
+                $results[] = "Added category_id column to events table!";
+            } catch (Exception $e2) {
+                $results[] = "Error adding category_id: " . $e2->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'results' => $results
+        ]);
+        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -239,6 +389,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/meeting-categories', function () {
         return view('dashboard');
     })->name('meeting-categories.index')->middleware('role:Admin');
+});
+
+// Events Routes - All users can view, specific roles can manage
+Route::middleware('auth')->group(function () {
+    // View routes
+    Route::get('/events', function () {
+        return view('dashboard');
+    })->name('events.index');
+
+    Route::get('/events/create', function () {
+        return view('dashboard');
+    })->name('events.create')->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+
+    Route::get('/events/edit/{event?}', function () {
+        return view('dashboard');
+    })->name('events.edit')->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+
+    // Event Categories Routes (Admin only)
+    Route::get('/event-categories', function () {
+        return view('dashboard');
+    })->name('event-categories.index')->middleware('role:Admin');
 });
 
 // Profile update route using web middleware

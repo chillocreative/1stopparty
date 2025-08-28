@@ -13,6 +13,9 @@ import ViewAllMeetings from './pages/ViewAllMeetings';
 import CreateMeeting from './pages/CreateMeeting';
 import EditMeeting from './pages/EditMeeting';
 import ViewAllMeetingCategories from './pages/ViewAllMeetingCategories';
+import ViewAllEvents from './pages/ViewAllEvents';
+import CreateEvent from './pages/CreateEvent';
+import ViewAllEventCategories from './pages/ViewAllEventCategories';
 
 console.log('App.jsx loaded');
 
@@ -63,6 +66,12 @@ if (dashboardElement) {
         ComponentToRender = EditMeeting;
     } else if (currentPath === '/meeting-categories') {
         ComponentToRender = ViewAllMeetingCategories;
+    } else if (currentPath === '/events') {
+        ComponentToRender = ViewAllEvents;
+    } else if (currentPath === '/events/create') {
+        ComponentToRender = CreateEvent;
+    } else if (currentPath === '/event-categories') {
+        ComponentToRender = ViewAllEventCategories;
     } else if (currentPath === '/profile') {
         ComponentToRender = Profile;
     }
