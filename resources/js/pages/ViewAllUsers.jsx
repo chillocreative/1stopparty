@@ -28,6 +28,7 @@ const ViewAllUsers = () => {
   const [editErrors, setEditErrors] = useState({});
 
   useEffect(() => {
+    console.log('ViewAllUsers component mounted, fetching data...'); // Debug log
     fetchUserData();
     fetchUsers();
     fetchRoles();
@@ -97,16 +98,50 @@ const ViewAllUsers = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Roles data received:', data); // Debug log
         if (data.success) {
+          console.log('Setting roles:', data.data); // Debug log
           setRoles(data.data || []);
         } else {
           console.error('Failed to fetch roles:', data.message);
+          // Fallback to public roles endpoint if admin endpoint fails
+          fetchPublicRoles();
         }
       } else {
-        console.error('Failed to fetch roles');
+        console.error('Failed to fetch roles, status:', response.status);
+        // Fallback to public roles endpoint if admin endpoint fails
+        fetchPublicRoles();
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
+      // Fallback to public roles endpoint if admin endpoint fails
+      fetchPublicRoles();
+    }
+  };
+
+  const fetchPublicRoles = async () => {
+    try {
+      const response = await fetch('/roles', {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Public roles data received:', data); // Debug log
+        if (data.success) {
+          setRoles(data.data || []);
+        } else {
+          console.error('Failed to fetch public roles:', data.message);
+        }
+      } else {
+        console.error('Failed to fetch public roles');
+      }
+    } catch (error) {
+      console.error('Error fetching public roles:', error);
     }
   };
 
@@ -310,10 +345,20 @@ const ViewAllUsers = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">All Roles</option>
-                {roles.map(role => (
-                  <option key={role.id} value={role.name}>{role.name}</option>
-                ))}
+                {roles.length > 0 ? (
+                  roles.map(role => (
+                    <option key={role.id} value={role.name}>{role.name}</option>
+                  ))
+                ) : (
+                  <option disabled>Loading roles...</option>
+                )}
               </select>
+              {/* Debug info - remove after fixing */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-1 text-xs text-gray-500">
+                  Roles loaded: {roles.length} | Selected: {selectedRole}
+                </div>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-500 mb-1">Showing Results</p>
@@ -441,7 +486,8 @@ const ViewAllUsers = () => {
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Total Users Card */}
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -458,6 +504,7 @@ const ViewAllUsers = () => {
             </div>
           </Card>
 
+          {/* Admin Card */}
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -468,7 +515,7 @@ const ViewAllUsers = () => {
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Admins</p>
+                <p className="text-sm font-medium text-gray-500">Admin</p>
                 <p className="text-2xl font-semibold text-gray-900">
                   {users.filter(u => u.role?.name === 'Admin').length}
                 </p>
@@ -476,37 +523,137 @@ const ViewAllUsers = () => {
             </div>
           </Card>
 
+          {/* Bendahari Card */}
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Staff</p>
+                <p className="text-sm font-medium text-gray-500">Bendahari</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {users.filter(u => ['Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AJK Cabang'].includes(u.role?.name)).length}
+                  {users.filter(u => u.role?.name === 'Bendahari').length}
                 </p>
               </div>
             </div>
           </Card>
 
+          {/* Setiausaha Card */}
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Setiausaha</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {users.filter(u => u.role?.name === 'Setiausaha').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Setiausaha Pengelola Card */}
           <Card className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
                   <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-500">Members</p>
+                <p className="text-sm font-medium text-gray-500">Setiausaha Pengelola</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {users.filter(u => ['AMK', 'Wanita', 'Anggota Biasa'].includes(u.role?.name)).length}
+                  {users.filter(u => u.role?.name === 'Setiausaha Pengelola').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Second row for remaining roles */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* AMK Card */}
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-orange-100 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">AMK</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {users.filter(u => u.role?.name === 'AMK').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Wanita Card */}
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-pink-100 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Wanita</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {users.filter(u => u.role?.name === 'Wanita').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* AJK Cabang Card */}
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-yellow-100 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">AJK Cabang</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {users.filter(u => u.role?.name === 'AJK Cabang').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Anggota Biasa Card */}
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-gray-100 rounded-md flex items-center justify-center">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-500">Anggota Biasa</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {users.filter(u => u.role?.name === 'Anggota Biasa').length}
                 </p>
               </div>
             </div>
