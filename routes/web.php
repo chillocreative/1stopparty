@@ -85,6 +85,23 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::delete('/api/events/{event}', [App\Http\Controllers\EventController::class, 'destroy'])->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
 });
 
+// AI Settings API routes for React frontend (Admin only)
+Route::middleware(['web', 'auth', 'role:Admin'])->group(function () {
+    Route::get('/api/ai-settings', [App\Http\Controllers\AISettingsController::class, 'index']);
+    Route::post('/api/ai-settings', [App\Http\Controllers\AISettingsController::class, 'store']);
+    Route::post('/api/ai-settings/test', [App\Http\Controllers\AISettingsController::class, 'testConnection']);
+});
+
+// AI Settings check route (for all authenticated users)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/api/ai-settings/check', [App\Http\Controllers\AISettingsController::class, 'checkConfiguration']);
+});
+
+// AI Analysis API routes for React frontend (all authenticated users)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/api/ai-analysis/chat', [App\Http\Controllers\AIAnalysisController::class, 'chat']);
+});
+
 
 
 // Temporary route for database setup (remove in production)
@@ -152,7 +169,7 @@ Route::get('/setup-database', function () {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )";
-            
+
             $pdo->exec($createCategoriesTable);
             $results[] = "Event categories table created successfully!";
         } catch (PDOException $e) {
@@ -211,9 +228,9 @@ Route::get('/debug-events-setup', function () {
 
         $results = [];
         $results[] = "Checking existing tables...";
-        
+
         $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll();
-        
+
         foreach ($tables as $table) {
             $results[] = "Table: " . $table['name'];
         }
@@ -224,7 +241,7 @@ Route::get('/debug-events-setup', function () {
             $results[] = "Event categories table exists with $result rows";
         } catch (Exception $e) {
             $results[] = "Event categories table does not exist - creating it...";
-            
+
             // Create the table
             $createTable = "
             CREATE TABLE event_categories (
@@ -235,10 +252,10 @@ Route::get('/debug-events-setup', function () {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )";
-            
+
             $pdo->exec($createTable);
             $results[] = "Event categories table created!";
-            
+
             // Insert default categories
             $categories = [
                 ['Program Cabang', 'Events related to branch programs and activities', '#3B82F6'],
@@ -249,7 +266,7 @@ Route::get('/debug-events-setup', function () {
                 ['Program JPWK', 'JPWK programs and activities', '#EF4444'],
                 ['Program JBPP', 'JBPP programs and activities', '#06B6D4'],
             ];
-            
+
             foreach ($categories as $category) {
                 $stmt = $pdo->prepare("INSERT INTO event_categories (name, description, color) VALUES (?, ?, ?)");
                 $stmt->execute($category);
@@ -275,7 +292,6 @@ Route::get('/debug-events-setup', function () {
             'success' => true,
             'results' => $results
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -312,6 +328,11 @@ Route::post('/login', function (Request $request) {
         'success' => false,
         'message' => 'The provided credentials do not match our records.'
     ], 422);
+});
+
+// Test route to debug React loading
+Route::get('/test-react', function () {
+    return view('test-react');
 });
 
 Route::post('/register', function (Request $request) {
@@ -412,6 +433,33 @@ Route::middleware('auth')->group(function () {
     })->name('event-categories.index')->middleware('role:Admin');
 });
 
+// Members Routes - All users can access members
+Route::middleware('auth')->group(function () {
+    Route::get('/members', function () {
+        return view('dashboard');
+    })->name('members.index');
+
+    Route::get('/members/dashboard', function () {
+        return view('dashboard');
+    })->name('members.dashboard');
+
+    Route::get('/members/analysis', function () {
+        return view('dashboard');
+    })->name('members.analysis');
+
+    Route::get('/members/upload', function () {
+        return view('dashboard');
+    })->name('members.upload');
+
+    Route::get('/members/pending-approval', function () {
+        return view('dashboard');
+    })->name('members.pending-approval')->middleware('role:Admin');
+
+    Route::get('/members/api-settings', function () {
+        return view('dashboard');
+    })->name('members.api-settings')->middleware('role:Admin');
+});
+
 // Profile update route using web middleware
 Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])
     ->middleware(['auth'])->name('profile.update');
@@ -445,4 +493,15 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::post('/users/store', [App\Http\Controllers\UserController::class, 'store'])->name('users.store.data');
     Route::put('/users/{user}/update', [App\Http\Controllers\UserController::class, 'update'])->name('users.update.data');
     Route::delete('/users/{user}/delete', [App\Http\Controllers\UserController::class, 'destroy'])->name('users.delete.data');
+    
+    // Finances routes - Admin and Bendahari only
+    Route::middleware(['role:Admin,Bendahari'])->group(function () {
+        Route::get('/finances', function () {
+            return view('dashboard');
+        })->name('finances.index');
+        
+        Route::get('/finances/upload', function () {
+            return view('dashboard');
+        })->name('finances.upload');
+    });
 });

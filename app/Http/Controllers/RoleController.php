@@ -16,7 +16,7 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::withCount('users')->orderBy('name')->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => RoleResource::collection($roles)

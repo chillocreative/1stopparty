@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
@@ -20,22 +21,42 @@ class MemberController extends Controller
         $query = Member::with(['uploader']);
 
         // Search functionality
-        if ($request->has('search')) {
+        if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('ic_no', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
+            $query->search($search);
         }
 
-        // Filter by uploader if provided
-        if ($request->has('uploaded_by')) {
-            $query->where('uploaded_by', $request->uploaded_by);
+        // Filter by active status
+        if ($request->has('active_only') && $request->active_only === 'true') {
+            $query->active();
         }
 
-        $members = $query->orderBy('name', 'asc')->paginate(15);
+        // Filter by gender
+        if ($request->has('gender') && !empty($request->gender)) {
+            $query->where('gender', $request->gender);
+        }
+
+        // Filter by state
+        if ($request->has('state') && !empty($request->state)) {
+            $query->where('state', $request->state);
+        }
+
+        // Filter by status
+        if ($request->has('status') && !empty($request->status)) {
+            if ($request->status === 'approved') {
+                $query->approved();
+            } else if ($request->status === 'pending') {
+                $query->pending();
+            }
+        }
+
+        // Sort by name by default
+        $sortBy = $request->get('sort_by', 'name');
+        $sortDirection = $request->get('sort_direction', 'asc');
+        $query->orderBy($sortBy, $sortDirection);
+
+        $perPage = $request->get('per_page', 15);
+        $members = $query->paginate($perPage);
         
         return response()->json([
             'success' => true,
@@ -46,6 +67,14 @@ class MemberController extends Controller
                 'total' => $members->total(),
                 'last_page' => $members->lastPage(),
             ],
+            'stats' => [
+                'total_members' => Member::count(),
+                'approved_members' => Member::approved()->count(),
+                'pending_members' => Member::pending()->count(),
+                'active_members' => Member::active()->approved()->count(),
+                'male_members' => Member::approved()->where('gender', 'M')->count(),
+                'female_members' => Member::approved()->where('gender', 'F')->count(),
+            ]
         ]);
     }
 
@@ -55,12 +84,23 @@ class MemberController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'ic_no' => 'required|string|unique:members,ic_no',
-            'phone' => 'required|string',
-            'email' => 'nullable|email',
-            'uploaded_by' => 'required|exists:users,id',
+            'name' => 'required|string|max:255',
+            'ic_no' => 'required|string|max:12|unique:members,ic_no',
+            'phone' => 'required|string|max:15',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'postcode' => 'nullable|string|max:10',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'occupation' => 'nullable|string|max:100',
+            'gender' => 'nullable|in:M,F',
+            'date_of_birth' => 'nullable|date',
+            'membership_type' => 'nullable|string|max:100',
+            'join_date' => 'nullable|date',
+            'remarks' => 'nullable|string|max:1000',
         ]);
+
+        $validated['uploaded_by'] = Auth::id();
 
         $member = Member::create($validated);
         $member->load(['uploader']);
@@ -91,10 +131,21 @@ class MemberController extends Controller
     public function update(Request $request, Member $member): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'ic_no' => ['required', 'string', Rule::unique('members')->ignore($member->id)],
-            'phone' => 'required|string',
-            'email' => 'nullable|email',
+            'name' => 'required|string|max:255',
+            'ic_no' => ['required', 'string', 'max:12', Rule::unique('members')->ignore($member->id)],
+            'phone' => 'required|string|max:15',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:500',
+            'postcode' => 'nullable|string|max:10',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'occupation' => 'nullable|string|max:100',
+            'gender' => 'nullable|in:M,F',
+            'date_of_birth' => 'nullable|date',
+            'membership_type' => 'nullable|string|max:100',
+            'join_date' => 'nullable|date',
+            'is_active' => 'boolean',
+            'remarks' => 'nullable|string|max:1000',
         ]);
 
         $member->update($validated);
@@ -121,49 +172,161 @@ class MemberController extends Controller
     }
 
     /**
-     * Import members from CSV/XLS file.
+     * Process uploaded file and check for duplicates
      */
-    public function import(Request $request): JsonResponse
+    public function processUpload(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,xlsx,xls|max:5120', // 5MB max
-            'uploaded_by' => 'required|exists:users,id',
+            'file' => 'required|file|mimes:csv,xlsx,xls|max:10240', // 10MB max
         ]);
 
         $file = $request->file('file');
-        $uploadedBy = $request->uploaded_by;
         
         try {
             $data = $this->parseFile($file);
-            $results = $this->processImportData($data, $uploadedBy);
+            
+            if (empty($data)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid data found in the uploaded file',
+                ], 422);
+            }
 
+            // Find duplicates
+            $duplicates = Member::findDuplicatesInCollection($data);
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Import completed successfully',
-                'data' => $results,
+                'data' => [
+                    'total_records' => count($data),
+                    'duplicates_count' => count($duplicates),
+                    'valid_records' => count($data) - count($duplicates),
+                    'duplicates' => $duplicates,
+                    'sample_data' => array_slice($data, 0, 5), // Show first 5 records as preview
+                    'all_data' => $data, // All parsed data for import
+                    'filename' => $file->getClientOriginalName(),
+                ]
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Import failed: ' . $e->getMessage(),
+                'message' => 'File processing failed: ' . $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Parse CSV or Excel file
+     * Import members after duplicate resolution
+     */
+    public function importMembers(Request $request): JsonResponse
+    {
+        $request->validate([
+            'members_data' => 'required|array',
+            'filename' => 'required|string',
+            'excluded_rows' => 'array', // Rows to exclude from import
+        ]);
+
+        $membersData = $request->members_data;
+        $excludedRows = $request->excluded_rows ?? [];
+        $filename = $request->filename;
+        $batchId = time(); // Simple batch ID
+        
+        $results = [
+            'total_processed' => 0,
+            'successful' => 0,
+            'failed' => 0,
+            'errors' => [],
+            'created_members' => [],
+        ];
+
+        foreach ($membersData as $index => $memberData) {
+            $rowNumber = $index + 2; // +2 for header row and 0-based index
+            
+            // Skip excluded rows
+            if (in_array($rowNumber, $excludedRows)) {
+                continue;
+            }
+
+            $results['total_processed']++;
+            
+            try {
+                // Prepare member data
+                $validatedData = $this->prepareMemberData($memberData, $filename, $batchId);
+                
+                // Create the member
+                $member = Member::create($validatedData);
+                $results['successful']++;
+                $results['created_members'][] = [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'ic_no' => $member->ic_no,
+                ];
+
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $results['errors'][] = [
+                    'row' => $rowNumber,
+                    'name' => $memberData['name'] ?? 'Unknown',
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Import completed',
+            'data' => $results,
+        ]);
+    }
+
+    /**
+     * Delete duplicate entries
+     */
+    public function deleteDuplicates(Request $request): JsonResponse
+    {
+        $request->validate([
+            'member_ids' => 'required|array',
+            'member_ids.*' => 'exists:members,id',
+        ]);
+
+        $deletedCount = 0;
+        $errors = [];
+
+        foreach ($request->member_ids as $memberId) {
+            try {
+                $member = Member::find($memberId);
+                if ($member) {
+                    $member->delete();
+                    $deletedCount++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Failed to delete member ID {$memberId}: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully deleted {$deletedCount} members",
+            'deleted_count' => $deletedCount,
+            'errors' => $errors,
+        ]);
+    }
+
+    /**
+     * Parse uploaded file
      */
     private function parseFile($file): array
     {
-        $extension = $file->getClientOriginalExtension();
+        $extension = strtolower($file->getClientOriginalExtension());
         $path = $file->store('temp');
         
         try {
             if ($extension === 'csv') {
                 return $this->parseCsv(Storage::path($path));
             } else {
-                return $this->parseExcel(Storage::path($path));
+                // For Excel files, we'll try a simple approach first
+                return $this->parseExcelSimple(Storage::path($path));
             }
         } finally {
             Storage::delete($path);
@@ -179,14 +342,18 @@ class MemberController extends Controller
         $headers = null;
         
         if (($handle = fopen($filePath, 'r')) !== FALSE) {
-            while (($row = fgetcsv($handle, 1000, ',')) !== FALSE) {
+            while (($row = fgetcsv($handle, 2000, ',')) !== FALSE) {
                 if ($headers === null) {
                     $headers = array_map('trim', $row);
                     continue;
                 }
                 
-                if (count($row) === count($headers)) {
-                    $data[] = array_combine($headers, array_map('trim', $row));
+                if (count($row) >= 3) { // At least name, IC, phone
+                    $rowData = [];
+                    for ($i = 0; $i < count($headers) && $i < count($row); $i++) {
+                        $rowData[$headers[$i]] = trim($row[$i]);
+                    }
+                    $data[] = $this->mapRowData($rowData);
                 }
             }
             fclose($handle);
@@ -196,104 +363,220 @@ class MemberController extends Controller
     }
 
     /**
-     * Parse Excel file (basic implementation - would need PhpSpreadsheet for full support)
+     * Simple Excel parser (converts to CSV format)
      */
-    private function parseExcel(string $filePath): array
+    private function parseExcelSimple(string $filePath): array
     {
-        // For now, treat as CSV since we don't have PhpSpreadsheet installed
-        // In a real implementation, you would use PhpSpreadsheet library
-        throw new \Exception('Excel import requires PhpSpreadsheet library. Please install it or convert to CSV format.');
-    }
-
-    /**
-     * Process and validate import data
-     */
-    private function processImportData(array $data, int $uploadedBy): array
-    {
-        $results = [
-            'total_rows' => count($data),
-            'successful' => 0,
-            'failed' => 0,
-            'errors' => [],
-            'created_members' => [],
-        ];
-
-        foreach ($data as $index => $row) {
-            $rowNumber = $index + 2; // +2 because arrays start at 0 and we skip header row
-            
-            try {
-                // Map CSV headers to database fields (case-insensitive)
-                $memberData = $this->mapRowData($row, $uploadedBy);
-                
-                // Validate the data
-                $validator = Validator::make($memberData, [
-                    'name' => 'required|string',
-                    'ic_no' => 'required|string|unique:members,ic_no',
-                    'phone' => 'required|string',
-                    'email' => 'nullable|email',
-                    'uploaded_by' => 'required|exists:users,id',
-                ]);
-
-                if ($validator->fails()) {
-                    $results['failed']++;
-                    $results['errors'][] = [
-                        'row' => $rowNumber,
-                        'errors' => $validator->errors()->all(),
-                    ];
-                    continue;
-                }
-
-                // Create the member
-                $member = Member::create($memberData);
-                $results['successful']++;
-                $results['created_members'][] = $member->name;
-
-            } catch (\Exception $e) {
-                $results['failed']++;
-                $results['errors'][] = [
-                    'row' => $rowNumber,
-                    'errors' => [$e->getMessage()],
-                ];
-            }
+        // This is a very basic Excel parser
+        // For production, you should use PhpSpreadsheet library
+        
+        // Try to read as CSV (sometimes Excel files can be read this way)
+        try {
+            return $this->parseCsv($filePath);
+        } catch (\Exception $e) {
+            throw new \Exception('Excel file parsing requires PhpSpreadsheet library. Please save the file as CSV format or install PhpSpreadsheet.');
         }
-
-        return $results;
     }
 
     /**
-     * Map CSV row data to member fields
+     * Map row data to standardized member fields
      */
-    private function mapRowData(array $row, int $uploadedBy): array
+    private function mapRowData(array $row): array
     {
-        // Define possible header mappings (case-insensitive)
         $fieldMappings = [
-            'name' => ['name', 'full name', 'member name', 'nama'],
-            'ic_no' => ['ic_no', 'ic', 'nric', 'ic number', 'no ic', 'identity card'],
-            'phone' => ['phone', 'phone number', 'mobile', 'telefon', 'no telefon'],
+            'name' => ['name', 'nama', 'full name', 'member name', 'full_name'],
+            'ic_no' => ['ic_no', 'ic', 'nric', 'ic number', 'kad pengenalan', 'no ic', 'identity card'],
+            'phone' => ['phone', 'mobile', 'telefon', 'phone number', 'mobile number', 'no telefon'],
             'email' => ['email', 'email address', 'e-mail', 'emel'],
+            'address' => ['address', 'alamat', 'home address'],
+            'postcode' => ['postcode', 'poskod', 'zip', 'postal code'],
+            'city' => ['city', 'bandar', 'town'],
+            'state' => ['state', 'negeri'],
+            'occupation' => ['occupation', 'pekerjaan', 'job', 'work'],
+            'gender' => ['gender', 'jantina', 'sex'],
+            'date_of_birth' => ['date_of_birth', 'dob', 'birth_date', 'tarikh lahir'],
+            'membership_type' => ['membership_type', 'jenis keahlian', 'member_type'],
+            'join_date' => ['join_date', 'tarikh sertai', 'date_joined'],
+            'remarks' => ['remarks', 'notes', 'catatan'],
         ];
 
-        $memberData = ['uploaded_by' => $uploadedBy];
+        $memberData = [];
         
         foreach ($fieldMappings as $field => $possibleHeaders) {
-            $value = null;
+            $value = $this->findValueByHeaders($row, $possibleHeaders);
             
-            foreach ($possibleHeaders as $header) {
-                foreach ($row as $key => $val) {
-                    if (strtolower(trim($key)) === strtolower($header)) {
-                        $value = trim($val);
-                        break 2;
-                    }
+            // Clean and format the value
+            if (!empty($value)) {
+                switch ($field) {
+                    case 'ic_no':
+                        $value = preg_replace('/\D/', '', $value); // Remove non-digits
+                        break;
+                    case 'phone':
+                        $value = preg_replace('/\D/', '', $value); // Remove non-digits
+                        if (strlen($value) === 9 && substr($value, 0, 1) !== '0') {
+                            $value = '0' . $value; // Add leading 0 if missing
+                        }
+                        break;
+                    case 'gender':
+                        $value = strtoupper(substr($value, 0, 1)); // M or F
+                        if (!in_array($value, ['M', 'F'])) {
+                            $value = null;
+                        }
+                        break;
+                    case 'date_of_birth':
+                    case 'join_date':
+                        try {
+                            $value = date('Y-m-d', strtotime($value));
+                        } catch (\Exception $e) {
+                            $value = null;
+                        }
+                        break;
+                    case 'email':
+                        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                            $value = null;
+                        }
+                        break;
                 }
             }
             
-            if ($field === 'email' && empty($value)) {
-                $memberData[$field] = null;
-            } else {
-                $memberData[$field] = $value;
-            }
+            $memberData[$field] = $value ?: null;
         }
 
         return $memberData;
+    }
+
+    /**
+     * Find value by checking multiple possible headers
+     */
+    private function findValueByHeaders(array $row, array $possibleHeaders): ?string
+    {
+        foreach ($possibleHeaders as $header) {
+            foreach ($row as $key => $value) {
+                if (strtolower(trim($key)) === strtolower($header)) {
+                    return trim($value);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Prepare member data for database insertion
+     */
+    private function prepareMemberData(array $memberData, string $filename, int $batchId): array
+    {
+        return array_merge($memberData, [
+            'uploaded_by' => Auth::id(),
+            'original_filename' => $filename,
+            'import_batch_id' => $batchId,
+            'is_active' => true,
+            'status' => 'pending', // All imported members start as pending
+        ]);
+    }
+
+    /**
+     * Get pending members for approval
+     */
+    public function getPendingMembers(Request $request): JsonResponse
+    {
+        $query = Member::with(['uploader'])
+            ->pending()
+            ->orderBy('created_at', 'desc');
+
+        $perPage = $request->get('per_page', 15);
+        $members = $query->paginate($perPage);
+        
+        return response()->json([
+            'success' => true,
+            'data' => MemberResource::collection($members->items()),
+            'meta' => [
+                'current_page' => $members->currentPage(),
+                'per_page' => $members->perPage(),
+                'total' => $members->total(),
+                'last_page' => $members->lastPage(),
+            ],
+            'stats' => [
+                'total_pending' => Member::pending()->count(),
+                'with_duplicates' => Member::pending()->withDuplicates()->count(),
+            ]
+        ]);
+    }
+
+    /**
+     * Approve members
+     */
+    public function approveMembers(Request $request): JsonResponse
+    {
+        $request->validate([
+            'member_ids' => 'required|array',
+            'member_ids.*' => 'exists:members,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $approvedCount = 0;
+        $errors = [];
+
+        foreach ($request->member_ids as $memberId) {
+            try {
+                $member = Member::find($memberId);
+                if ($member && $member->status === 'pending') {
+                    $member->update([
+                        'status' => 'approved',
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now(),
+                        'approval_notes' => $request->notes,
+                    ]);
+                    $approvedCount++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Failed to approve member ID {$memberId}: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully approved {$approvedCount} members",
+            'approved_count' => $approvedCount,
+            'errors' => $errors,
+        ]);
+    }
+
+    /**
+     * Reject members
+     */
+    public function rejectMembers(Request $request): JsonResponse
+    {
+        $request->validate([
+            'member_ids' => 'required|array',
+            'member_ids.*' => 'exists:members,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $rejectedCount = 0;
+        $errors = [];
+
+        foreach ($request->member_ids as $memberId) {
+            try {
+                $member = Member::find($memberId);
+                if ($member && $member->status === 'pending') {
+                    $member->update([
+                        'status' => 'rejected',
+                        'approved_by' => Auth::id(),
+                        'approved_at' => now(),
+                        'approval_notes' => $request->notes,
+                    ]);
+                    $rejectedCount++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Failed to reject member ID {$memberId}: " . $e->getMessage();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully rejected {$rejectedCount} members",
+            'rejected_count' => $rejectedCount,
+            'errors' => $errors,
+        ]);
     }
 }

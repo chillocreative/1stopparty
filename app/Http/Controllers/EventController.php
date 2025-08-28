@@ -108,7 +108,7 @@ class EventController extends Controller
     {
         try {
             $event->load(['category', 'creator']);
-            
+
             return response()->json([
                 'id' => $event->id,
                 'title' => $event->title,

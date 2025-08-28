@@ -13,10 +13,20 @@ const EditMeeting = () => {
         category_id: '',
         date: '',
         time: '',
-        minit_mesyuarat_file: null
+        minit_mesyuarat_file: null,
+        penyata_kewangan_file: null,
+        aktiviti_file: null
     });
-    const [existingFile, setExistingFile] = useState(null);
-    const [filePreview, setFilePreview] = useState(null);
+    const [existingFiles, setExistingFiles] = useState({
+        minit_mesyuarat_file: null,
+        penyata_kewangan_file: null,
+        aktiviti_file: null
+    });
+    const [filePreview, setFilePreview] = useState({
+        minit_mesyuarat_file: null,
+        penyata_kewangan_file: null,
+        aktiviti_file: null
+    });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
@@ -95,15 +105,32 @@ const EditMeeting = () => {
                     category_id: meeting.category_id || '',
                     date: meeting.date || '',
                     time: meeting.time || '',
-                    minit_mesyuarat_file: null
+                    minit_mesyuarat_file: null,
+                    penyata_kewangan_file: null,
+                    aktiviti_file: null
                 });
 
-                if (meeting.minit_mesyuarat_file) {
-                    setExistingFile({
-                        url: meeting.minit_mesyuarat_file,
-                        name: meeting.minit_mesyuarat_file.split('/').pop()
-                    });
+                // Set existing files
+                const existingFilesData = {};
+                if (meeting.minit_mesyuarat_file_url) {
+                    existingFilesData.minit_mesyuarat_file = {
+                        url: meeting.minit_mesyuarat_file_url,
+                        name: meeting.minit_mesyuarat_file ? meeting.minit_mesyuarat_file.split('/').pop() : 'Minit Mesyuarat'
+                    };
                 }
+                if (meeting.penyata_kewangan_file_url) {
+                    existingFilesData.penyata_kewangan_file = {
+                        url: meeting.penyata_kewangan_file_url,
+                        name: meeting.penyata_kewangan_file ? meeting.penyata_kewangan_file.split('/').pop() : 'Penyata Kewangan'
+                    };
+                }
+                if (meeting.aktiviti_file_url) {
+                    existingFilesData.aktiviti_file = {
+                        url: meeting.aktiviti_file_url,
+                        name: meeting.aktiviti_file ? meeting.aktiviti_file.split('/').pop() : 'Aktiviti'
+                    };
+                }
+                setExistingFiles(existingFilesData);
             } else {
                 throw new Error('Failed to fetch meeting');
             }
@@ -118,20 +145,23 @@ const EditMeeting = () => {
     const handleInputChange = (e) => {
         const { name, value, files } = e.target;
 
-        if (name === 'minit_mesyuarat_file' && files && files[0]) {
+        // Handle file uploads for all three types
+        if ((name === 'minit_mesyuarat_file' || name === 'penyata_kewangan_file' || name === 'aktiviti_file') && files && files[0]) {
             const file = files[0];
 
-            // Validate file type (allow PDF and DOC files)
+            // Validate file type (allow PDF, DOC, DOCX, and XLSX files)
             const allowedTypes = [
                 'application/pdf',
                 'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel'
             ];
 
             if (!allowedTypes.includes(file.type)) {
                 setErrors(prev => ({
                     ...prev,
-                    minit_mesyuarat_file: 'Please select a valid document file (PDF, DOC, DOCX)'
+                    [name]: 'Please select a valid document file (PDF, DOC, DOCX, XLSX)'
                 }));
                 return;
             }
@@ -140,23 +170,26 @@ const EditMeeting = () => {
             if (file.size > 10 * 1024 * 1024) {
                 setErrors(prev => ({
                     ...prev,
-                    minit_mesyuarat_file: 'File size must be less than 10MB'
+                    [name]: 'File size must be less than 10MB'
                 }));
                 return;
             }
 
             setFormData(prev => ({ ...prev, [name]: file }));
-            setFilePreview({
-                name: file.name,
-                size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-                type: file.type
-            });
+            setFilePreview(prev => ({
+                ...prev,
+                [name]: {
+                    name: file.name,
+                    size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                    type: file.type
+                }
+            }));
 
             // Clear error if file is valid
-            if (errors.minit_mesyuarat_file) {
+            if (errors[name]) {
                 setErrors(prev => {
                     const newErrors = { ...prev };
-                    delete newErrors.minit_mesyuarat_file;
+                    delete newErrors[name];
                     return newErrors;
                 });
             }
@@ -215,6 +248,12 @@ const EditMeeting = () => {
             if (formData.minit_mesyuarat_file) {
                 submitData.append('minit_mesyuarat_file', formData.minit_mesyuarat_file);
             }
+            if (formData.penyata_kewangan_file) {
+                submitData.append('penyata_kewangan_file', formData.penyata_kewangan_file);
+            }
+            if (formData.aktiviti_file) {
+                submitData.append('aktiviti_file', formData.aktiviti_file);
+            }
 
             const response = await fetch(`/api/meetings/${meetingId}`, {
                 method: 'POST', // Using POST with _method override for file uploads
@@ -251,22 +290,125 @@ const EditMeeting = () => {
         }
     };
 
-    const removeNewFile = () => {
-        setFormData(prev => ({ ...prev, minit_mesyuarat_file: null }));
-        setFilePreview(null);
+    const removeNewFile = (fileType) => {
+        setFormData(prev => ({ ...prev, [fileType]: null }));
+        setFilePreview(prev => ({
+            ...prev,
+            [fileType]: null
+        }));
 
         // Reset file input
-        const fileInput = document.getElementById('minit_mesyuarat_file');
+        const fileInput = document.getElementById(fileType);
         if (fileInput) {
             fileInput.value = '';
         }
     };
 
-    const handleViewExistingFile = () => {
-        if (existingFile?.url) {
-            window.open(existingFile.url, '_blank');
+    const handleViewExistingFile = (fileType) => {
+        if (existingFiles[fileType]?.url) {
+            window.open(existingFiles[fileType].url, '_blank');
         }
     };
+
+    // Reusable file upload component for edit
+    const FileUploadSection = ({ fileType, label, description }) => (
+        <div className="space-y-2">
+            {/* Existing File Display */}
+            {existingFiles[fileType] && !filePreview[fileType] && (
+                <div className="space-y-2">
+                    <Label>Current {label}</Label>
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">{existingFiles[fileType].name}</p>
+                                    <p className="text-xs text-gray-500">Current file</p>
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                onClick={() => handleViewExistingFile(fileType)}
+                                variant="outline"
+                                size="sm"
+                            >
+                                View File
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* New File Upload */}
+            <Label htmlFor={fileType}>
+                {existingFiles[fileType] ? `Replace ${label}` : `Upload ${label}`}
+            </Label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                {filePreview[fileType] ? (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-center">
+                            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-900">{filePreview[fileType].name}</p>
+                            <p className="text-xs text-gray-500">{filePreview[fileType].size}</p>
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={() => removeNewFile(fileType)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                        >
+                            Remove New File
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-center justify-center mb-3">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm text-gray-600">
+                                <span className="font-medium">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                PDF, DOC, DOCX, XLSX up to 10MB
+                            </p>
+                        </div>
+                        <input
+                            id={fileType}
+                            name={fileType}
+                            type="file"
+                            onChange={handleInputChange}
+                            accept=".pdf,.doc,.docx,.xlsx"
+                            className="hidden"
+                        />
+                        <Button
+                            type="button"
+                            onClick={() => document.getElementById(fileType).click()}
+                            variant="outline"
+                            className="mt-3"
+                        >
+                            Choose New File
+                        </Button>
+                    </>
+                )}
+            </div>
+            {errors[fileType] && (
+                <p className="text-sm text-red-600">{errors[fileType]}</p>
+            )}
+            <p className="text-sm text-gray-500">
+                {description}
+            </p>
+        </div>
+    );
 
     if (loading) {
         return (
@@ -411,105 +553,24 @@ const EditMeeting = () => {
                                 </div>
                             </div>
 
-                            {/* Existing File */}
-                            {existingFile && !filePreview && (
-                                <div className="space-y-2">
-                                    <Label>Current Minit Mesyuarat</Label>
-                                    <div className="border rounded-lg p-4 bg-gray-50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-3">
-                                                <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{existingFile.name}</p>
-                                                    <p className="text-xs text-gray-500">Current file</p>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                onClick={handleViewExistingFile}
-                                                variant="outline"
-                                                size="sm"
-                                            >
-                                                View File
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {/* File Upload Sections */}
+                            <FileUploadSection
+                                fileType="minit_mesyuarat_file"
+                                label="Minit Mesyuarat"
+                                description="Upload the meeting minutes document (optional)"
+                            />
 
-                            {/* Upload New Minit Mesyuarat */}
-                            <div className="space-y-2">
-                                <Label htmlFor="minit_mesyuarat_file">
-                                    {existingFile ? 'Replace Minit Mesyuarat' : 'Upload Minit Mesyuarat'}
-                                </Label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                    {filePreview ? (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-center">
-                                                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">{filePreview.name}</p>
-                                                <p className="text-xs text-gray-500">{filePreview.size}</p>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                onClick={removeNewFile}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-red-600 hover:text-red-700"
-                                            >
-                                                Remove New File
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-center justify-center mb-3">
-                                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                </svg>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <p className="text-sm text-gray-600">
-                                                    <span className="font-medium">Click to upload</span> or drag and drop
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    PDF, DOC, DOCX up to 10MB
-                                                </p>
-                                            </div>
-                                            <input
-                                                id="minit_mesyuarat_file"
-                                                name="minit_mesyuarat_file"
-                                                type="file"
-                                                onChange={handleInputChange}
-                                                accept=".pdf,.doc,.docx"
-                                                className="hidden"
-                                            />
-                                            <Button
-                                                type="button"
-                                                onClick={() => document.getElementById('minit_mesyuarat_file').click()}
-                                                variant="outline"
-                                                className="mt-3"
-                                            >
-                                                Choose New File
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                                {errors.minit_mesyuarat_file && (
-                                    <p className="text-sm text-red-600">{errors.minit_mesyuarat_file}</p>
-                                )}
-                                <p className="text-sm text-gray-500">
-                                    {existingFile
-                                        ? 'Upload a new file to replace the existing one (optional)'
-                                        : 'Upload the meeting minutes document (optional)'
-                                    }
-                                </p>
-                            </div>
+                            <FileUploadSection
+                                fileType="penyata_kewangan_file"
+                                label="Penyata Kewangan"
+                                description="Upload the financial statement document (optional)"
+                            />
+
+                            <FileUploadSection
+                                fileType="aktiviti_file"
+                                label="Aktiviti"
+                                description="Upload the activity report document (optional)"
+                            />
 
                             {/* Submit Button */}
                             <div className="flex items-center justify-end space-x-4">

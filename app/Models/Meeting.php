@@ -20,6 +20,8 @@ class Meeting extends Model
         'date',
         'time',
         'minit_mesyuarat_file',
+        'penyata_kewangan_file',
+        'aktiviti_file',
         'created_by',
         'role_id',
         'category_id',
@@ -42,11 +44,35 @@ class Meeting extends Model
      */
     protected function getMinitMesyuaratFileUrlAttribute(): ?string
     {
-        if (!$this->minit_mesyuarat_file) {
+        return $this->getFileUrl($this->minit_mesyuarat_file);
+    }
+
+    /**
+     * Get the penyata kewangan file URL.
+     */
+    protected function getPenyataKewanganFileUrlAttribute(): ?string
+    {
+        return $this->getFileUrl($this->penyata_kewangan_file);
+    }
+
+    /**
+     * Get the aktiviti file URL.
+     */
+    protected function getAktifitiFileUrlAttribute(): ?string
+    {
+        return $this->getFileUrl($this->aktiviti_file);
+    }
+
+    /**
+     * Helper method to get file URL.
+     */
+    private function getFileUrl(?string $filePath): ?string
+    {
+        if (!$filePath) {
             return null;
         }
 
-        $path = $this->minit_mesyuarat_file;
+        $path = $filePath;
 
         // Handle different path formats that might be stored
         if (strpos($path, 'storage/') === 0) {
@@ -77,7 +103,11 @@ class Meeting extends Model
      *
      * @var array<int, string>
      */
-    protected $appends = ['minit_mesyuarat_file_url'];
+    protected $appends = [
+        'minit_mesyuarat_file_url',
+        'penyata_kewangan_file_url',
+        'aktiviti_file_url'
+    ];
 
     /**
      * Get the user who created the meeting.

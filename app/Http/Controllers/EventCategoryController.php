@@ -96,7 +96,7 @@ class EventCategoryController extends Controller
         try {
             // Check if there are events using this category
             $eventCount = $eventCategory->events()->count();
-            
+
             if ($eventCount > 0) {
                 return response()->json([
                     'error' => "Cannot delete category '{$eventCategory->name}' because it is being used by {$eventCount} event(s). Please reassign or delete those events first."

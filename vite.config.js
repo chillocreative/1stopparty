@@ -9,7 +9,18 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.jsx'],
             refresh: true,
         }),
-        react(),
+        react({
+            jsxRuntime: 'classic',
+            babel: {
+                presets: ['@babel/preset-react'],
+            },
+            fastRefresh: false
+        }),
         tailwindcss(),
     ],
+    server: {
+        host: 'localhost',
+        port: 5173,
+        hmr: false
+    },
 });

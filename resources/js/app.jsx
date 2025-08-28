@@ -16,8 +16,29 @@ import ViewAllMeetingCategories from './pages/ViewAllMeetingCategories';
 import ViewAllEvents from './pages/ViewAllEvents';
 import CreateEvent from './pages/CreateEvent';
 import ViewAllEventCategories from './pages/ViewAllEventCategories';
+import ViewAllMembers from './pages/ViewAllMembers';
+import MembersDashboard from './pages/MembersDashboard';
+import MembersAnalysis from './pages/MembersAnalysis';
+import MembersUpload from './pages/MembersUpload';
+import PendingApproval from './pages/PendingApproval';
+import APISettings from './pages/APISettings';
+import ViewFinances from './pages/ViewFinances';
+import UploadFinanceFiles from './pages/UploadFinanceFiles';
 
 console.log('App.jsx loaded');
+
+// Mount Test component if element exists
+const testElement = document.getElementById('test-app');
+if (testElement) {
+    console.log('Mounting Test component');
+    const root = createRoot(testElement);
+    root.render(React.createElement('div', { 
+        style: { padding: '20px', backgroundColor: '#f0f0f0', border: '2px solid #00ff00' }
+    }, 'React is working! Card test: ', React.createElement('div', {
+        className: 'rounded-lg border bg-card text-card-foreground shadow-sm p-4 mt-2'
+    }, 'This is a test card component')));
+    console.log('Test component mounted');
+}
 
 // Mount Welcome Page component if element exists
 const welcomeElement = document.getElementById('welcome-app');
@@ -50,7 +71,9 @@ if (dashboardElement) {
 
     let ComponentToRender = Dashboard;
 
-    if (currentPath === '/users') {
+    if (currentPath === '/dashboard') {
+        ComponentToRender = Dashboard;
+    } else if (currentPath === '/users') {
         ComponentToRender = ViewAllUsers;
     } else if (currentPath === '/users/create') {
         ComponentToRender = CreateUser;
@@ -72,6 +95,22 @@ if (dashboardElement) {
         ComponentToRender = CreateEvent;
     } else if (currentPath === '/event-categories') {
         ComponentToRender = ViewAllEventCategories;
+    } else if (currentPath === '/members') {
+        ComponentToRender = ViewAllMembers;
+    } else if (currentPath === '/members/dashboard') {
+        ComponentToRender = MembersDashboard;
+    } else if (currentPath === '/members/analysis') {
+        ComponentToRender = MembersAnalysis;
+    } else if (currentPath === '/members/upload') {
+        ComponentToRender = MembersUpload;
+    } else if (currentPath === '/members/pending-approval') {
+        ComponentToRender = PendingApproval;
+    } else if (currentPath === '/members/api-settings') {
+        ComponentToRender = APISettings;
+    } else if (currentPath === '/finances') {
+        ComponentToRender = ViewFinances;
+    } else if (currentPath === '/finances/upload') {
+        ComponentToRender = UploadFinanceFiles;
     } else if (currentPath === '/profile') {
         ComponentToRender = Profile;
     }

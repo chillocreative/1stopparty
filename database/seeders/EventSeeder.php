@@ -33,7 +33,7 @@ class EventSeeder extends Seeder
         $eventsWithoutCategories = Event::whereNull('category_id')->get();
         if ($eventsWithoutCategories->count() > 0) {
             $this->command->info('Updating ' . $eventsWithoutCategories->count() . ' existing events with categories...');
-            
+
             foreach ($eventsWithoutCategories as $event) {
                 // Assign a random category to existing events
                 $randomCategory = $categories->random();
@@ -45,7 +45,7 @@ class EventSeeder extends Seeder
         $currentEventCount = Event::count();
         if ($currentEventCount < 60) {
             $this->command->info('Adding new sample events...');
-            
+
             $events = [
                 [
                     'title' => 'Annual General Meeting 2025',
@@ -170,18 +170,18 @@ class EventSeeder extends Seeder
             ];
 
             $users = User::all();
-            
+
             foreach ($events as $eventData) {
                 // Check if event with same title already exists
                 $existingEvent = Event::where('title', $eventData['title'])->first();
                 if ($existingEvent) {
                     continue; // Skip if already exists
                 }
-                
+
                 // Find the category by name
                 $category = $categories->firstWhere('name', $eventData['category_name']);
                 $creator = $users->random();
-                
+
                 Event::create([
                     'title' => $eventData['title'],
                     'description' => $eventData['description'],

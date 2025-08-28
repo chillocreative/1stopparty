@@ -5,9 +5,9 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     echo "Checking existing tables...\n";
-    
+
     $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll();
-    
+
     foreach ($tables as $table) {
         echo "Table: " . $table['name'] . "\n";
     }
@@ -18,7 +18,7 @@ try {
         echo "Event categories table exists with $result rows\n";
     } catch (Exception $e) {
         echo "Event categories table does not exist\n";
-        
+
         // Create the table
         echo "Creating event_categories table...\n";
         $createTable = "
@@ -30,10 +30,10 @@ try {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )";
-        
+
         $pdo->exec($createTable);
         echo "Event categories table created!\n";
-        
+
         // Insert default categories
         $categories = [
             ['Program Cabang', 'Events related to branch programs and activities', '#3B82F6'],
@@ -44,7 +44,7 @@ try {
             ['Program JPWK', 'JPWK programs and activities', '#EF4444'],
             ['Program JBPP', 'JBPP programs and activities', '#06B6D4'],
         ];
-        
+
         foreach ($categories as $category) {
             $stmt = $pdo->prepare("INSERT INTO event_categories (name, description, color) VALUES (?, ?, ?)");
             $stmt->execute($category);
@@ -53,8 +53,6 @@ try {
     }
 
     echo "Database check complete!\n";
-    
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }
-?>

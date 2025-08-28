@@ -13,6 +13,12 @@ const ViewAllUsers = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   // Edit modal states
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -285,6 +291,66 @@ const ViewAllUsers = () => {
     }
   };
 
+  // Sorting function
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  // Bulk action handlers
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const allIds = new Set(paginatedUsers.map(user => user.id));
+      setSelectedItems(allIds);
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (id, checked) => {
+    const newSelection = new Set(selectedItems);
+    if (checked) {
+      newSelection.add(id);
+    } else {
+      newSelection.delete(id);
+    }
+    setSelectedItems(newSelection);
+    setShowBulkActions(newSelection.size > 0);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedItems.size} selected users?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedItems).map(id =>
+        fetch(`/api/users/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          }
+        })
+      );
+
+      await Promise.all(deletePromises);
+      await fetchUsers(); // Refresh the list
+      setSelectedItems(new Set());
+      setShowBulkActions(false);
+    } catch (error) {
+      console.error('Error deleting users:', error);
+      alert('Failed to delete some users. Please try again.');
+    }
+  };
+
+  // Filter and sort users
   const filteredUsers = users.filter(userData => {
     const matchesSearch = userData.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userData.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -292,7 +358,60 @@ const ViewAllUsers = () => {
       userData.phone?.includes(searchTerm);
     const matchesRole = selectedRole === 'all' || userData.role?.name === selectedRole;
     return matchesSearch && matchesRole;
+  }).sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortField) {
+      case 'name':
+        aValue = a.name?.toLowerCase() || '';
+        bValue = b.name?.toLowerCase() || '';
+        break;
+      case 'email':
+        aValue = a.email?.toLowerCase() || '';
+        bValue = b.email?.toLowerCase() || '';
+        break;
+      case 'role':
+        aValue = a.role?.name?.toLowerCase() || '';
+        bValue = b.role?.name?.toLowerCase() || '';
+        break;
+      case 'ic_number':
+        aValue = a.ic_number || '';
+        bValue = b.ic_number || '';
+        break;
+      default:
+        return 0;
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
+
+  // Pagination logic
+  const totalItems = filteredUsers.length;
+  const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
+  
+  const paginatedUsers = itemsPerPage === 'all' 
+    ? filteredUsers 
+    : filteredUsers.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedRole]);
+
+  // Pagination handlers
+  const handleItemsPerPageChange = (value) => {
+    setItemsPerPage(value === 'all' ? 'all' : parseInt(value));
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   if (loading) {
     return (
@@ -372,6 +491,43 @@ const ViewAllUsers = () => {
           </div>
         </Card>
 
+        {/* Bulk Actions Toolbar */}
+        {showBulkActions && (
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedItems.size} item(s) selected
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedItems(new Set());
+                    setShowBulkActions(false);
+                  }}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  className="text-red-600 hover:text-red-800 border-red-200 hover:border-red-300"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Selected
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Users Table */}
         {error ? (
           <Card className="p-6">
@@ -383,24 +539,88 @@ const ViewAllUsers = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IC Number</th>
+                    <th className="px-6 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        checked={selectedItems.size === paginatedUsers.length && paginatedUsers.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                      />
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('name')}
+                        className="flex items-center space-x-1 hover:text-gray-700"
+                      >
+                        <span>Full Name</span>
+                        {sortField === 'name' && (
+                          <svg className={`w-4 h-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('email')}
+                        className="flex items-center space-x-1 hover:text-gray-700"
+                      >
+                        <span>Email</span>
+                        {sortField === 'email' && (
+                          <svg className={`w-4 h-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('ic_number')}
+                        className="flex items-center space-x-1 hover:text-gray-700"
+                      >
+                        <span>IC Number</span>
+                        {sortField === 'ic_number' && (
+                          <svg className={`w-4 h-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('role')}
+                        className="flex items-center space-x-1 hover:text-gray-700"
+                      >
+                        <span>Role</span>
+                        {sortField === 'role' && (
+                          <svg className={`w-4 h-4 ${sortDirection === 'asc' ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                    </th>
                     <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.length === 0 ? (
+                  {paginatedUsers.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                         No users found
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((userData) => (
+                    paginatedUsers.map((userData) => (
                       <tr key={userData.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            checked={selectedItems.has(userData.id)}
+                            onChange={(e) => handleSelectItem(userData.id, e.target.checked)}
+                          />
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
@@ -481,6 +701,80 @@ const ViewAllUsers = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <div className="px-6 py-4 bg-white border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-700">Show:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => handleItemsPerPageChange(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value="all">All</option>
+                    </select>
+                    <span className="text-sm text-gray-700">entries</span>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Showing {itemsPerPage === 'all' ? filteredUsers.length : ((currentPage - 1) * itemsPerPage) + 1} to {itemsPerPage === 'all' ? filteredUsers.length : Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
+                  </div>
+                </div>
+                
+                {itemsPerPage !== 'all' && totalPages > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    
+                    <div className="flex space-x-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${
+                              currentPage === pageNum
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         )}

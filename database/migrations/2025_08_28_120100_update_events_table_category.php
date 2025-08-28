@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('events', function (Blueprint $table) {
             // Remove the old category enum column
             $table->dropColumn('category');
-            
+
             // Add new category_id foreign key
             $table->foreignId('category_id')->nullable()->constrained('event_categories')->onDelete('set null');
         });
@@ -29,7 +29,7 @@ return new class extends Migration
             // Remove the category_id foreign key
             $table->dropForeign(['category_id']);
             $table->dropColumn('category_id');
-            
+
             // Restore the old category enum column
             $table->enum('category', ['Cabang', 'AMK', 'Wanita'])->after('event_time');
         });

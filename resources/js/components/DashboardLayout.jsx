@@ -39,9 +39,21 @@ const DashboardLayout = ({ children, user }) => {
       } else if (pathname === '/event-categories') {
         setCurrentPath('event-categories');
       } else if (pathname === '/members') {
-        setCurrentPath('members');
+        setCurrentPath('view-all-members');
+      } else if (pathname === '/members/dashboard') {
+        setCurrentPath('members-dashboard');
+      } else if (pathname === '/members/analysis') {
+        setCurrentPath('members-analysis');
+      } else if (pathname === '/members/upload') {
+        setCurrentPath('upload-file');
+      } else if (pathname === '/members/pending-approval') {
+        setCurrentPath('pending-approval');
+      } else if (pathname === '/members/api-settings') {
+        setCurrentPath('api-settings');
       } else if (pathname === '/finances') {
-        setCurrentPath('finances');
+        setCurrentPath('view-finances');
+      } else if (pathname === '/finances/upload') {
+        setCurrentPath('upload-files');
       } else {
         setCurrentPath('dashboard');
       }

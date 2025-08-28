@@ -8,7 +8,7 @@ use Database\Seeders\EventCategorySeeder;
 
 try {
     $capsule = new Capsule;
-    
+
     $capsule->addConnection([
         'driver' => 'sqlite',
         'database' => __DIR__ . '/database/database.sqlite',
@@ -22,7 +22,7 @@ try {
 
     // Create event_categories table if it doesn't exist
     $pdo = $capsule->getConnection()->getPdo();
-    
+
     $createCategoriesTable = "
     CREATE TABLE IF NOT EXISTS event_categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +32,7 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
-    
+
     $pdo->exec($createCategoriesTable);
     echo "Event categories table created successfully!\n";
 
@@ -53,7 +53,7 @@ try {
     }
 
     echo "Running event category seeder...\n";
-    
+
     // Run the seeder manually
     $categories = [
         ['name' => 'Program Cabang', 'description' => 'Events related to branch programs and activities', 'color' => '#3B82F6'],
@@ -72,7 +72,6 @@ try {
 
     echo "Event categories seeded successfully!\n";
     echo "Setup completed!\n";
-
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
     echo "Stack trace: " . $e->getTraceAsString() . "\n";

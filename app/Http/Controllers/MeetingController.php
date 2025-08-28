@@ -56,15 +56,24 @@ class MeetingController extends Controller
                 'category_id' => 'nullable|exists:meeting_categories,id',
                 'date' => 'required|date|after_or_equal:today',
                 'time' => 'required',
-                'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+                'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
+                'penyata_kewangan_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
+                'aktiviti_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
             ]);
 
-            // Handle file upload
-            $filePath = null;
-            if ($request->hasFile('minit_mesyuarat_file')) {
-                $file = $request->file('minit_mesyuarat_file');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('meeting_files', $fileName, 'public');
+            // Handle file uploads
+            $filePaths = [
+                'minit_mesyuarat_file' => null,
+                'penyata_kewangan_file' => null,
+                'aktiviti_file' => null
+            ];
+
+            foreach ($filePaths as $fileField => $value) {
+                if ($request->hasFile($fileField)) {
+                    $file = $request->file($fileField);
+                    $fileName = time() . '_' . $fileField . '_' . $file->getClientOriginalName();
+                    $filePaths[$fileField] = $file->storeAs('meeting_files', $fileName, 'public');
+                }
             }
 
             $meetingData = [
@@ -72,7 +81,9 @@ class MeetingController extends Controller
                 'category_id' => $validated['category_id'] ?? null,
                 'date' => $validated['date'],
                 'time' => $validated['time'],
-                'minit_mesyuarat_file' => $filePath,
+                'minit_mesyuarat_file' => $filePaths['minit_mesyuarat_file'],
+                'penyata_kewangan_file' => $filePaths['penyata_kewangan_file'],
+                'aktiviti_file' => $filePaths['aktiviti_file'],
                 'created_by' => $user->id,
                 'role_id' => $user->role_id,
             ];
@@ -123,20 +134,29 @@ class MeetingController extends Controller
             'category_id' => 'nullable|exists:meeting_categories,id',
             'date' => 'required|date',
             'time' => 'required',
-            'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // 10MB max
+            'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
+            'penyata_kewangan_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
+            'aktiviti_file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:10240', // 10MB max
         ]);
 
-        // Handle file upload
-        $filePath = $meeting->minit_mesyuarat_file; // Keep existing file by default
-        if ($request->hasFile('minit_mesyuarat_file')) {
-            // Delete old file if exists
-            if ($meeting->minit_mesyuarat_file) {
-                Storage::disk('public')->delete($meeting->minit_mesyuarat_file);
-            }
+        // Handle file uploads
+        $filePaths = [
+            'minit_mesyuarat_file' => $meeting->minit_mesyuarat_file, // Keep existing files by default
+            'penyata_kewangan_file' => $meeting->penyata_kewangan_file,
+            'aktiviti_file' => $meeting->aktiviti_file
+        ];
 
-            $file = $request->file('minit_mesyuarat_file');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('meeting_files', $fileName, 'public');
+        foreach ($filePaths as $fileField => $currentPath) {
+            if ($request->hasFile($fileField)) {
+                // Delete old file if exists
+                if ($currentPath) {
+                    Storage::disk('public')->delete($currentPath);
+                }
+
+                $file = $request->file($fileField);
+                $fileName = time() . '_' . $fileField . '_' . $file->getClientOriginalName();
+                $filePaths[$fileField] = $file->storeAs('meeting_files', $fileName, 'public');
+            }
         }
 
         $meetingData = [
@@ -144,7 +164,9 @@ class MeetingController extends Controller
             'category_id' => $validated['category_id'] ?? null,
             'date' => $validated['date'],
             'time' => $validated['time'],
-            'minit_mesyuarat_file' => $filePath,
+            'minit_mesyuarat_file' => $filePaths['minit_mesyuarat_file'],
+            'penyata_kewangan_file' => $filePaths['penyata_kewangan_file'],
+            'aktiviti_file' => $filePaths['aktiviti_file'],
         ];
 
         $meeting->update($meetingData);
@@ -162,9 +184,17 @@ class MeetingController extends Controller
      */
     public function destroy(Meeting $meeting): JsonResponse
     {
-        // Delete associated file if exists
-        if ($meeting->minit_mesyuarat_file) {
-            Storage::disk('public')->delete($meeting->minit_mesyuarat_file);
+        // Delete associated files if they exist
+        $filesToDelete = [
+            $meeting->minit_mesyuarat_file,
+            $meeting->penyata_kewangan_file,
+            $meeting->aktiviti_file
+        ];
+
+        foreach ($filesToDelete as $filePath) {
+            if ($filePath) {
+                Storage::disk('public')->delete($filePath);
+            }
         }
 
         $meeting->delete();

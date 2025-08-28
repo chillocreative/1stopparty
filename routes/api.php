@@ -88,6 +88,30 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
     Route::delete('members/{member}', [MemberController::class, 'destroy'])
         ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
-    Route::post('members/import', [MemberController::class, 'import'])
+    
+    // File upload and import routes
+    Route::post('members/process-upload', [MemberController::class, 'processUpload'])
         ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::post('members/import-members', [MemberController::class, 'importMembers'])
+        ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    Route::delete('members/delete-duplicates', [MemberController::class, 'deleteDuplicates'])
+        ->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+    
+    // Member approval workflow routes (Admin only)
+    Route::get('members/pending', [MemberController::class, 'getPendingMembers'])
+        ->middleware('role:Admin');
+    Route::post('members/approve', [MemberController::class, 'approveMembers'])
+        ->middleware('role:Admin');
+    Route::post('members/reject', [MemberController::class, 'rejectMembers'])
+        ->middleware('role:Admin');
+});
+
+// Finance routes - Admin and Bendahari only
+Route::middleware(['web', 'auth', 'role:Admin,Bendahari'])->group(function () {
+    Route::get('finances', [App\Http\Controllers\FinanceController::class, 'index']);
+    Route::get('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'show']);
+    Route::post('finances', [App\Http\Controllers\FinanceController::class, 'store']);
+    Route::post('finances/upload-pdf', [App\Http\Controllers\FinanceController::class, 'uploadPdf']);
+    Route::put('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'update']);
+    Route::delete('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'destroy']);
 });

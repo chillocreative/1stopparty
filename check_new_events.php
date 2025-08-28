@@ -8,7 +8,7 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $newEvents = \App\Models\Event::with('category')
     ->whereIn('title', [
         'Annual General Meeting 2025',
-        'Women Empowerment Workshop', 
+        'Women Empowerment Workshop',
         'Youth Leadership Program',
         'Community Health Fair',
         'Digital Skills Training'
