@@ -318,7 +318,7 @@ const ViewAllUsers = () => {
             <div className="text-right">
               <p className="text-sm text-gray-500 mb-1">Showing Results</p>
               <p className="text-2xl font-bold text-gray-900">
-                {filteredUsers.length} 
+                {filteredUsers.length}
                 <span className="text-sm font-normal text-gray-500 ml-1">
                   of {users.length} users
                 </span>
@@ -371,7 +371,7 @@ const ViewAllUsers = () => {
                                   }}
                                 />
                               ) : null}
-                              <div 
+                              <div
                                 className={`h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center ${userData.profile_image_url ? 'hidden' : 'flex'}`}
                               >
                                 <span className="text-white font-medium text-sm">
@@ -395,14 +395,14 @@ const ViewAllUsers = () => {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${userData.role?.name === 'Admin' ? 'bg-red-100 text-red-800' :
-                              userData.role?.name === 'Bendahari' ? 'bg-green-100 text-green-800' :
-                                userData.role?.name === 'Setiausaha' ? 'bg-blue-100 text-blue-800' :
-                                  userData.role?.name === 'Setiausaha Pengelola' ? 'bg-purple-100 text-purple-800' :
-                                    userData.role?.name === 'AJK Cabang' ? 'bg-yellow-100 text-yellow-800' :
-                                      userData.role?.name === 'AMK' ? 'bg-orange-100 text-orange-800' :
-                                        userData.role?.name === 'Wanita' ? 'bg-pink-100 text-pink-800' :
-                                          userData.role?.name === 'Anggota Biasa' ? 'bg-gray-100 text-gray-800' :
-                                            'bg-gray-100 text-gray-800'
+                            userData.role?.name === 'Bendahari' ? 'bg-green-100 text-green-800' :
+                              userData.role?.name === 'Setiausaha' ? 'bg-blue-100 text-blue-800' :
+                                userData.role?.name === 'Setiausaha Pengelola' ? 'bg-purple-100 text-purple-800' :
+                                  userData.role?.name === 'AJK Cabang' ? 'bg-yellow-100 text-yellow-800' :
+                                    userData.role?.name === 'AMK' ? 'bg-orange-100 text-orange-800' :
+                                      userData.role?.name === 'Wanita' ? 'bg-pink-100 text-pink-800' :
+                                        userData.role?.name === 'Anggota Biasa' ? 'bg-gray-100 text-gray-800' :
+                                          'bg-gray-100 text-gray-800'
                             }`}>
                             {userData.role?.name || 'No Role'}
                           </span>

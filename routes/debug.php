@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/debug/auth', function (Request $request) {
     $user = $request->user();
-    
+
     if ($user) {
         return response()->json([
             'authenticated' => true,

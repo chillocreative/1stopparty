@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Profile Debug Test</title>
 </head>
+
 <body>
     <h1>Profile Debug Test</h1>
     <div id="result"></div>
-    
+
     <script>
         async function testProfileAPI() {
             try {
@@ -19,17 +21,17 @@
                     },
                     credentials: 'same-origin'
                 });
-                
+
                 console.log('Response status:', response.status);
                 console.log('Response ok:', response.ok);
-                
+
                 if (response.ok) {
                     const userData = await response.json();
                     console.log('Full response:', userData);
-                    
+
                     const userInfo = userData.data;
                     console.log('User data:', userInfo);
-                    
+
                     document.getElementById('result').innerHTML = `
                         <h2>User Data Retrieved:</h2>
                         <pre>${JSON.stringify(userInfo, null, 2)}</pre>
@@ -50,9 +52,10 @@
                 `;
             }
         }
-        
+
         // Run test when page loads
         window.onload = testProfileAPI;
     </script>
 </body>
+
 </html>

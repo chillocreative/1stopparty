@@ -70,7 +70,7 @@ const CreateUser = () => {
     // Handle file upload for profile image
     if (name === 'profile_image' && files && files[0]) {
       const file = files[0];
-      
+
       // Validate file type
       if (!file.type.startsWith('image/')) {
         setErrors(prev => ({
@@ -198,7 +198,7 @@ const CreateUser = () => {
       formDataToSend.append('password', formData.password);
       formDataToSend.append('password_confirmation', formData.password_confirmation);
       formDataToSend.append('role_id', formData.role_id);
-      
+
       if (formData.profile_image) {
         formDataToSend.append('profile_image', formData.profile_image);
       }
@@ -316,240 +316,240 @@ const CreateUser = () => {
             <CardDescription>Enter the new user's information</CardDescription>
           </CardHeader>
           <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Profile Image Upload Section */}
-                <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-300">
-                      {imagePreview ? (
-                        <img
-                          src={imagePreview}
-                          alt="Profile preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    {imagePreview && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImagePreview(null);
-                          setFormData(prev => ({ ...prev, profile_image: null }));
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <Label htmlFor="profile_image" className="cursor-pointer">
-                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Upload Profile Picture
-                      </span>
-                      <input
-                        id="profile_image"
-                        name="profile_image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleInputChange}
-                        className="sr-only"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Profile Image Upload Section */}
+              <div className="flex flex-col items-center space-y-4 pb-6 border-b border-gray-200">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-300">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Profile preview"
+                        className="w-full h-full object-cover"
                       />
-                    </Label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Optional. Max file size: 5MB. Supported formats: JPG, PNG, GIF
-                    </p>
-                    {errors.profile_image && (
-                      <p className="mt-1 text-sm text-red-600">{errors.profile_image}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                  {/* Name */}
-                  <div className="lg:col-span-3">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className={errors.name ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="Enter full name"
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                    )}
-                  </div>
-
-                  {/* IC Number */}
-                  <div>
-                    <Label htmlFor="ic_number">IC Number *</Label>
-                    <Input
-                      id="ic_number"
-                      name="ic_number"
-                      type="text"
-                      value={formData.ic_number}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        if (value.length <= 12) {
-                          handleInputChange({
-                            target: { name: 'ic_number', value }
-                          });
-                        }
-                      }}
-                      className={errors.ic_number ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="12 digits only (e.g., 990101140123)"
-                      maxLength={12}
-                    />
-                    {errors.ic_number && (
-                      <p className="mt-1 text-sm text-red-600">{errors.ic_number}</p>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <Label htmlFor="phone">Handphone Number *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="text"
-                      value={formData.phone}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, '');
-                        if (value.length <= 11 && (!value || value.startsWith('01'))) {
-                          handleInputChange({
-                            target: { name: 'phone', value }
-                          });
-                        }
-                      }}
-                      className={errors.phone ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="10-11 digits only (e.g., 0123456789)"
-                      maxLength={11}
-                    />
-                    {errors.phone && (
-                      <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="lg:col-span-1">
-                    <Label htmlFor="email">Email Address (if any)</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className={errors.email ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="Enter email address (optional)"
-                    />
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                    )}
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={errors.password ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="Create a password (min. 8 characters)"
-                    />
-                    {errors.password && (
-                      <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                    )}
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <Label htmlFor="password_confirmation">Confirm Password *</Label>
-                    <Input
-                      id="password_confirmation"
-                      name="password_confirmation"
-                      type="password"
-                      value={formData.password_confirmation}
-                      onChange={handleInputChange}
-                      className={errors.password_confirmation ? 'border-red-500 focus:ring-red-500' : ''}
-                      placeholder="Confirm your password"
-                    />
-                    {errors.password_confirmation && (
-                      <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
-                    )}
-                  </div>
-
-                  {/* Role */}
-                  <div className="lg:col-span-3">
-                    <Label htmlFor="role_id">User Role *</Label>
-                    <select
-                      id="role_id"
-                      name="role_id"
-                      value={formData.role_id}
-                      onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.role_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-                        }`}
-                    >
-                      <option value="">Select a role</option>
-                      {roles.map(role => (
-                        <option key={role.id} value={role.id}>{role.name}</option>
-                      ))}
-                    </select>
-                    {errors.role_id && (
-                      <p className="mt-1 text-sm text-red-600">{errors.role_id}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Form Actions */}
-                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancel}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Creating...
-                      </>
                     ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        Create User
-                      </>
+                      </div>
                     )}
-                  </Button>
+                  </div>
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(null);
+                        setFormData(prev => ({ ...prev, profile_image: null }));
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+                <div className="text-center">
+                  <Label htmlFor="profile_image" className="cursor-pointer">
+                    <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Upload Profile Picture
+                    </span>
+                    <input
+                      id="profile_image"
+                      name="profile_image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleInputChange}
+                      className="sr-only"
+                    />
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional. Max file size: 5MB. Supported formats: JPG, PNG, GIF
+                  </p>
+                  {errors.profile_image && (
+                    <p className="mt-1 text-sm text-red-600">{errors.profile_image}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Name */}
+                <div className="lg:col-span-3">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className={errors.name ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="Enter full name"
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                  )}
+                </div>
+
+                {/* IC Number */}
+                <div>
+                  <Label htmlFor="ic_number">IC Number *</Label>
+                  <Input
+                    id="ic_number"
+                    name="ic_number"
+                    type="text"
+                    value={formData.ic_number}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 12) {
+                        handleInputChange({
+                          target: { name: 'ic_number', value }
+                        });
+                      }
+                    }}
+                    className={errors.ic_number ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="12 digits only (e.g., 990101140123)"
+                    maxLength={12}
+                  />
+                  {errors.ic_number && (
+                    <p className="mt-1 text-sm text-red-600">{errors.ic_number}</p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <Label htmlFor="phone">Handphone Number *</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 11 && (!value || value.startsWith('01'))) {
+                        handleInputChange({
+                          target: { name: 'phone', value }
+                        });
+                      }
+                    }}
+                    className={errors.phone ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="10-11 digits only (e.g., 0123456789)"
+                    maxLength={11}
+                  />
+                  {errors.phone && (
+                    <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="lg:col-span-1">
+                  <Label htmlFor="email">Email Address (if any)</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={errors.email ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="Enter email address (optional)"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={errors.password ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="Create a password (min. 8 characters)"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <Label htmlFor="password_confirmation">Confirm Password *</Label>
+                  <Input
+                    id="password_confirmation"
+                    name="password_confirmation"
+                    type="password"
+                    value={formData.password_confirmation}
+                    onChange={handleInputChange}
+                    className={errors.password_confirmation ? 'border-red-500 focus:ring-red-500' : ''}
+                    placeholder="Confirm your password"
+                  />
+                  {errors.password_confirmation && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password_confirmation}</p>
+                  )}
+                </div>
+
+                {/* Role */}
+                <div className="lg:col-span-3">
+                  <Label htmlFor="role_id">User Role *</Label>
+                  <select
+                    id="role_id"
+                    name="role_id"
+                    value={formData.role_id}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.role_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                      }`}
+                  >
+                    <option value="">Select a role</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                  {errors.role_id && (
+                    <p className="mt-1 text-sm text-red-600">{errors.role_id}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Create User
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

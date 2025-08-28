@@ -12,11 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('meetings', function (Blueprint $table) {
-            // Add time field
-            $table->time('time')->nullable()->after('date');
-
-            // Rename file_path to minit_mesyuarat_file for better clarity
-            $table->renameColumn('file_path', 'minit_mesyuarat_file');
+            $table->foreignId('category_id')->nullable()->constrained('meeting_categories')->onDelete('set null');
         });
     }
 
@@ -26,11 +22,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('meetings', function (Blueprint $table) {
-            // Remove time field
-            $table->dropColumn('time');
-
-            // Rename back to original column name
-            $table->renameColumn('minit_mesyuarat_file', 'file_path');
+            $table->dropForeign(['category_id']);
+            $table->dropColumn('category_id');
         });
     }
 };

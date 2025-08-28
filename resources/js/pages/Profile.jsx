@@ -45,20 +45,20 @@ const Profile = () => {
                 },
                 credentials: 'same-origin'
             });
-            
+
             console.log('Response received:', {
                 status: response.status,
                 statusText: response.statusText,
                 ok: response.ok,
                 headers: Array.from(response.headers.entries())
             });
-            
+
             if (response.ok) {
                 const userData = await response.json();
                 console.log('Full API response:', userData);
                 const userInfo = userData.data;
                 console.log('User info extracted:', userInfo);
-                
+
                 if (userInfo) {
                     setUser(userInfo);
                     setFormData({
@@ -94,10 +94,10 @@ const Profile = () => {
 
     const handleInputChange = (e) => {
         const { name, value, files } = e.target;
-        
+
         if (name === 'profile_image' && files && files[0]) {
             const file = files[0];
-            
+
             // Validate file type
             if (!file.type.startsWith('image/')) {
                 setErrors(prev => ({
@@ -143,7 +143,7 @@ const Profile = () => {
             }
             return;
         }
-        
+
         if (name === 'phone') {
             const numericValue = value.replace(/[^0-9]/g, '');
             if (numericValue.length <= 11 && (!numericValue || numericValue.startsWith('01'))) {
@@ -166,7 +166,7 @@ const Profile = () => {
     const handlePasswordChange = (e) => {
         const { name, value } = e.target;
         setPasswordData(prev => ({ ...prev, [name]: value }));
-        
+
         // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
@@ -220,7 +220,7 @@ const Profile = () => {
             data.append('email', formData.email);
             data.append('ic_number', formData.ic_number);
             data.append('phone', formData.phone);
-            
+
             if (formData.profile_image) {
                 data.append('profile_image', formData.profile_image);
             }
@@ -261,7 +261,7 @@ const Profile = () => {
 
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
-        
+
         const newErrors = {};
 
         if (!passwordData.password) {
@@ -370,7 +370,7 @@ const Profile = () => {
                         </CardContent>
                     </Card>
                 )}
-                
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
@@ -475,7 +475,7 @@ const Profile = () => {
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 {isEditing && (
                                     <div className="text-center">
                                         <Label htmlFor="profile_image" className="cursor-pointer">
@@ -659,8 +659,8 @@ const Profile = () => {
                             </div>
 
                             <div className="flex justify-end pt-6 border-t border-gray-200">
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={passwordLoading || !passwordData.password || !passwordData.password_confirmation}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
@@ -689,17 +689,16 @@ const Profile = () => {
                             <div>
                                 <Label className="text-sm font-medium text-gray-700">Role</Label>
                                 <div className="mt-2">
-                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                        user?.role?.name === 'Admin' ? 'bg-red-100 text-red-800' :
-                                        user?.role?.name === 'Bendahari' ? 'bg-green-100 text-green-800' :
-                                        user?.role?.name === 'Setiausaha' ? 'bg-blue-100 text-blue-800' :
-                                        user?.role?.name === 'Setiausaha Pengelola' ? 'bg-purple-100 text-purple-800' :
-                                        user?.role?.name === 'AJK Cabang' ? 'bg-yellow-100 text-yellow-800' :
-                                        user?.role?.name === 'AMK' ? 'bg-orange-100 text-orange-800' :
-                                        user?.role?.name === 'Wanita' ? 'bg-pink-100 text-pink-800' :
-                                        user?.role?.name === 'Anggota Biasa' ? 'bg-gray-100 text-gray-800' :
-                                        'bg-gray-100 text-gray-800'
-                                    }`}>
+                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${user?.role?.name === 'Admin' ? 'bg-red-100 text-red-800' :
+                                            user?.role?.name === 'Bendahari' ? 'bg-green-100 text-green-800' :
+                                                user?.role?.name === 'Setiausaha' ? 'bg-blue-100 text-blue-800' :
+                                                    user?.role?.name === 'Setiausaha Pengelola' ? 'bg-purple-100 text-purple-800' :
+                                                        user?.role?.name === 'AJK Cabang' ? 'bg-yellow-100 text-yellow-800' :
+                                                            user?.role?.name === 'AMK' ? 'bg-orange-100 text-orange-800' :
+                                                                user?.role?.name === 'Wanita' ? 'bg-pink-100 text-pink-800' :
+                                                                    user?.role?.name === 'Anggota Biasa' ? 'bg-gray-100 text-gray-800' :
+                                                                        'bg-gray-100 text-gray-800'
+                                        }`}>
                                         {user?.role?.name || 'No role assigned'}
                                     </span>
                                 </div>

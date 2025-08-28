@@ -16,7 +16,7 @@ Route::post('/api/profile/update', [App\Http\Controllers\ProfileController::clas
 // Debug route to check authentication
 Route::get('/debug/auth', function (Request $request) {
     $user = $request->user();
-    
+
     if ($user) {
         return response()->json([
             'authenticated' => true,
@@ -36,7 +36,7 @@ Route::get('/debug/auth', function (Request $request) {
 // API User endpoint for React frontend (using web sessions)
 Route::get('/api/user', function (Request $request) {
     $user = $request->user();
-    
+
     if (!$user) {
         return response()->json([
             'success' => false,
@@ -48,12 +48,22 @@ Route::get('/api/user', function (Request $request) {
             ]
         ], 401);
     }
-    
+
     return response()->json([
         'success' => true,
         'data' => $user->load('role')
     ]);
 })->middleware(['web', 'auth']);
+
+// Meeting Categories API routes for React frontend (using web sessions)
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/api/meeting-categories', [App\Http\Controllers\MeetingCategoryController::class, 'index']);
+    Route::post('/api/meeting-categories', [App\Http\Controllers\MeetingCategoryController::class, 'store'])->middleware('role:Admin');
+    Route::get('/api/meeting-categories/{meetingCategory}', [App\Http\Controllers\MeetingCategoryController::class, 'show']);
+    Route::put('/api/meeting-categories/{meetingCategory}', [App\Http\Controllers\MeetingCategoryController::class, 'update'])->middleware('role:Admin');
+    Route::patch('/api/meeting-categories/{meetingCategory}', [App\Http\Controllers\MeetingCategoryController::class, 'update'])->middleware('role:Admin');
+    Route::delete('/api/meeting-categories/{meetingCategory}', [App\Http\Controllers\MeetingCategoryController::class, 'destroy'])->middleware('role:Admin');
+});
 
 
 
@@ -116,7 +126,6 @@ Route::get('/setup-database', function () {
             'success' => true,
             'results' => $results
         ]);
-
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -225,6 +234,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/meetings/edit/{meeting?}', function () {
         return view('dashboard');
     })->name('meetings.edit')->middleware('role:Admin,Bendahari,Setiausaha,Setiausaha Pengelola,AMK,Wanita');
+
+    // Meeting Categories Routes (Admin only)
+    Route::get('/meeting-categories', function () {
+        return view('dashboard');
+    })->name('meeting-categories.index')->middleware('role:Admin');
 });
 
 // Profile update route using web middleware
@@ -249,6 +263,10 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/roles', function () {
         return view('dashboard');
     })->name('roles.index');
+
+    Route::get('/meeting-categories', function () {
+        return view('dashboard');
+    })->name('meeting-categories.index');
 
     // Web API routes for users data (to avoid API middleware issues)
     Route::get('/users/data', [App\Http\Controllers\UsersController::class, 'index'])->name('users.data');

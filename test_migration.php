@@ -41,7 +41,7 @@ try {
     echo "Testing database connection...\n";
     $pdo = new PDO('sqlite:database/database.sqlite');
     echo "Database connection successful!\n";
-    
+
     // Check if sessions table exists
     $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'");
     if ($stmt->fetch()) {
@@ -49,8 +49,6 @@ try {
     } else {
         echo "Sessions table does not exist\n";
     }
-    
 } catch (Exception $e) {
     echo "Database connection error: " . $e->getMessage() . "\n";
 }
-?>

@@ -8,7 +8,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
   useEffect(() => {
     const menuItems = getMenuItems(user?.role?.name);
     const newExpandedState = {};
-    
+
     menuItems.forEach(item => {
       if (item.hasSubmenu && item.submenu) {
         const hasActiveSubmenu = item.submenu.some(sub => currentPath === sub.id);
@@ -17,7 +17,7 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
         }
       }
     });
-    
+
     setExpandedMenus(prev => ({ ...prev, ...newExpandedState }));
   }, [currentPath, user?.role?.name]);
 
@@ -114,6 +114,17 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
             </svg>
           ),
           roles: ['Admin', 'Bendahari', 'Setiausaha', 'Setiausaha Pengelola', 'AMK', 'Wanita']
+        },
+        {
+          id: 'meeting-categories',
+          label: 'Category',
+          path: '/meeting-categories',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          ),
+          roles: ['Admin']
         }
       ]
     });
@@ -266,25 +277,23 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
           const isSubmenuActive = item.submenu && item.submenu.some(sub => currentPath === sub.id);
           const isDirectlyActive = currentPath === item.id;
           const shouldBeExpanded = isSubmenuActive || expandedMenus[item.id];
-          
+
           return (
             <div key={item.id}>
               {/* Main Menu Item */}
               <button
                 onClick={() => handleMenuClick(item)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  isDirectlyActive
+                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${isDirectlyActive
                     ? 'bg-gray-100 text-gray-900'
                     : isSubmenuActive
-                    ? 'text-gray-900'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                      ? 'text-gray-900'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
               >
-                <span className={`flex-shrink-0 ${
-                  isDirectlyActive || isSubmenuActive
+                <span className={`flex-shrink-0 ${isDirectlyActive || isSubmenuActive
                     ? 'text-gray-600'
                     : 'text-gray-500'
-                }`}>
+                  }`}>
                   {item.icon}
                 </span>
                 {!isCollapsed && (
@@ -311,11 +320,10 @@ const Sidebar = ({ user, currentPath = 'dashboard', onNavigate }) => {
                     <button
                       key={submenuItem.id}
                       onClick={() => handleSubmenuClick(submenuItem, item.id)}
-                      className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${
-                        currentPath === submenuItem.id
+                      className={`w-full flex items-center space-x-2 px-3 py-1.5 rounded-md text-left text-sm transition-colors ${currentPath === submenuItem.id
                           ? 'bg-gray-100 text-gray-900 font-medium'
                           : 'text-gray-600 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <span className={`flex-shrink-0 ${currentPath === submenuItem.id ? 'text-gray-600' : 'text-gray-400'}`}>
                         {submenuItem.icon}

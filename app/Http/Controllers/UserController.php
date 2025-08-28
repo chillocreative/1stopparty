@@ -18,7 +18,7 @@ class UserController extends Controller
     public function index(): JsonResponse
     {
         $users = User::with('role')->paginate(15);
-        
+
         return response()->json([
             'success' => true,
             'data' => UserResource::collection($users->items()),
@@ -72,7 +72,7 @@ class UserController extends Controller
     public function show(User $user): JsonResponse
     {
         $user->load('role');
-        
+
         return response()->json([
             'success' => true,
             'data' => new UserResource($user),
@@ -106,7 +106,7 @@ class UserController extends Controller
             if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                 Storage::disk('public')->delete($user->profile_image);
             }
-            
+
             $image = $request->file('profile_image');
             $imageName = time() . '_' . $image->getClientOriginalName();
             $imagePath = $image->storeAs('profile_images', $imageName, 'public');

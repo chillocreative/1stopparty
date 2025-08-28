@@ -17,11 +17,11 @@ class MeetingController extends Controller
      */
     public function index(): JsonResponse
     {
-        $meetings = Meeting::with(['creator', 'role'])
+        $meetings = Meeting::with(['creator', 'role', 'category'])
             ->orderBy('date', 'desc')
             ->orderBy('time', 'desc')
             ->get(); // Changed from paginate to get() for simplicity
-        
+
         return response()->json([
             'success' => true,
             'data' => MeetingResource::collection($meetings),
@@ -53,6 +53,7 @@ class MeetingController extends Controller
 
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
+                'category_id' => 'nullable|exists:meeting_categories,id',
                 'date' => 'required|date|after_or_equal:today',
                 'time' => 'required',
                 'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // 10MB max
@@ -68,6 +69,7 @@ class MeetingController extends Controller
 
             $meetingData = [
                 'title' => $validated['title'],
+                'category_id' => $validated['category_id'] ?? null,
                 'date' => $validated['date'],
                 'time' => $validated['time'],
                 'minit_mesyuarat_file' => $filePath,
@@ -76,14 +78,13 @@ class MeetingController extends Controller
             ];
 
             $meeting = Meeting::create($meetingData);
-            $meeting->load(['creator', 'role']);
+            $meeting->load(['creator', 'role', 'category']);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Meeting created successfully',
                 'data' => new MeetingResource($meeting),
             ], 201);
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -104,8 +105,8 @@ class MeetingController extends Controller
      */
     public function show(Meeting $meeting): JsonResponse
     {
-        $meeting->load(['creator', 'role']);
-        
+        $meeting->load(['creator', 'role', 'category']);
+
         return response()->json([
             'success' => true,
             'data' => new MeetingResource($meeting),
@@ -119,6 +120,7 @@ class MeetingController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:meeting_categories,id',
             'date' => 'required|date',
             'time' => 'required',
             'minit_mesyuarat_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // 10MB max
@@ -131,7 +133,7 @@ class MeetingController extends Controller
             if ($meeting->minit_mesyuarat_file) {
                 Storage::disk('public')->delete($meeting->minit_mesyuarat_file);
             }
-            
+
             $file = $request->file('minit_mesyuarat_file');
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('meeting_files', $fileName, 'public');
@@ -139,13 +141,14 @@ class MeetingController extends Controller
 
         $meetingData = [
             'title' => $validated['title'],
+            'category_id' => $validated['category_id'] ?? null,
             'date' => $validated['date'],
             'time' => $validated['time'],
             'minit_mesyuarat_file' => $filePath,
         ];
 
         $meeting->update($meetingData);
-        $meeting->load(['creator', 'role']);
+        $meeting->load(['creator', 'role', 'category']);
 
         return response()->json([
             'success' => true,
@@ -163,7 +166,7 @@ class MeetingController extends Controller
         if ($meeting->minit_mesyuarat_file) {
             Storage::disk('public')->delete($meeting->minit_mesyuarat_file);
         }
-        
+
         $meeting->delete();
 
         return response()->json([

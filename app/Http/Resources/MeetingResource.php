@@ -37,6 +37,14 @@ class MeetingResource extends JsonResource
                     'description' => $this->role->description,
                 ];
             }),
+            'category_id' => $this->category_id,
+            'category' => $this->whenLoaded('category', function () {
+                return [
+                    'id' => $this->category->id,
+                    'name' => $this->category->name,
+                    'description' => $this->category->description,
+                ];
+            }),
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
         ];

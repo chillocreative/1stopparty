@@ -48,7 +48,7 @@ const ViewAllRoles = () => {
   const fetchRoles = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await fetch('/api/roles', {
         credentials: 'include',

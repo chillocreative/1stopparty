@@ -30,6 +30,8 @@ const DashboardLayout = ({ children, user }) => {
         setCurrentPath('create-meeting');
       } else if (pathname.startsWith('/meetings/edit/')) {
         setCurrentPath('create-meeting'); // Use same as create for menu highlighting
+      } else if (pathname === '/meeting-categories') {
+        setCurrentPath('meeting-categories');
       } else if (pathname === '/events') {
         setCurrentPath('events');
       } else if (pathname === '/members') {
@@ -42,7 +44,7 @@ const DashboardLayout = ({ children, user }) => {
     };
 
     detectCurrentPath();
-    
+
     // Listen for navigation changes
     window.addEventListener('popstate', detectCurrentPath);
     return () => window.removeEventListener('popstate', detectCurrentPath);
@@ -51,13 +53,13 @@ const DashboardLayout = ({ children, user }) => {
   const handleNavigation = (path, route) => {
     setCurrentPath(path);
     setIsMobileMenuOpen(false);
-    
+
     if (path === 'logout') {
       // Handle logout logic here
       window.location.href = '/logout';
       return;
     }
-    
+
     // For now, just update the path
     // In a real app, you'd use React Router or similar
     console.log(`Navigating to: ${route}`);
@@ -79,9 +81,9 @@ const DashboardLayout = ({ children, user }) => {
     <div className="flex h-screen bg-gray-50">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
-        <Sidebar 
-          user={user} 
-          currentPath={currentPath} 
+        <Sidebar
+          user={user}
+          currentPath={currentPath}
           onNavigate={handleNavigation}
         />
       </div>
@@ -91,9 +93,9 @@ const DashboardLayout = ({ children, user }) => {
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" />
           <div className="mobile-menu relative flex flex-col w-64 bg-white">
-            <Sidebar 
-              user={user} 
-              currentPath={currentPath} 
+            <Sidebar
+              user={user}
+              currentPath={currentPath}
               onNavigate={handleNavigation}
             />
           </div>

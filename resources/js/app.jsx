@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import ViewAllMeetings from './pages/ViewAllMeetings';
 import CreateMeeting from './pages/CreateMeeting';
 import EditMeeting from './pages/EditMeeting';
+import ViewAllMeetingCategories from './pages/ViewAllMeetingCategories';
 
 console.log('App.jsx loaded');
 
@@ -40,12 +41,12 @@ const dashboardElement = document.getElementById('dashboard-app');
 if (dashboardElement) {
     console.log('Mounting Dashboard component');
     const root = createRoot(dashboardElement);
-    
+
     // Simple routing based on current path
     const currentPath = window.location.pathname;
-    
+
     let ComponentToRender = Dashboard;
-    
+
     if (currentPath === '/users') {
         ComponentToRender = ViewAllUsers;
     } else if (currentPath === '/users/create') {
@@ -60,10 +61,12 @@ if (dashboardElement) {
         ComponentToRender = CreateMeeting;
     } else if (currentPath.startsWith('/meetings/edit')) {
         ComponentToRender = EditMeeting;
+    } else if (currentPath === '/meeting-categories') {
+        ComponentToRender = ViewAllMeetingCategories;
     } else if (currentPath === '/profile') {
         ComponentToRender = Profile;
     }
-    
+
     root.render(<ComponentToRender />);
     console.log('Dashboard component mounted with path:', currentPath, 'Component:', ComponentToRender.name);
 }
