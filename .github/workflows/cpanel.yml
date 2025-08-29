@@ -17,4 +17,4 @@ jobs:
           remote_path: /home/keadilan/sys.keadilankb.com/
           remote_host: sys.keadilankb.com
           remote_user: keadilan
-          remote_key: ${{ secrets.SHA256:ddQA60IioCRqmDiPusKZA7kNcIAQvi6l+mhpF8uccMI  }}
+          remote_key: ${{ secrets.ddQA60IioCRqmDiPusKZA7kNcIAQvi6l+mhpF8uccMI  }}
