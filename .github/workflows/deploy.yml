@@ -24,9 +24,9 @@ jobs:
       - name: Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.ftp.keadilankb.com }}
-          username: ${{ secrets.apps@keadilankb.com }}
-          password: ${{ secrets.Rahim1977@ }}
+          server: ${{ ftp.keadilankb.com }}
+          username: ${{ apps@keadilankb.com }}
+          password: ${{ Rahim1977@ }}
           local-dir: ./ 
           server-dir: /home/keadilan/sys.keadilankb.com/   # adjust for your cPanel root
 
