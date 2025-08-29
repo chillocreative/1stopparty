@@ -44,14 +44,51 @@ class ProfileController extends Controller
         if ($request->hasFile('profile_image')) {
             // Delete old image if exists
             if ($user->profile_image) {
+                // Try to delete from both possible locations
                 Storage::disk('public')->delete($user->profile_image);
+                
+                // Also try direct public path (for production environments)
+                $publicPath = public_path($user->profile_image);
+                if (file_exists($publicPath)) {
+                    unlink($publicPath);
+                }
             }
 
             // Store new image
             $image = $request->file('profile_image');
             $imageName = time() . '_' . $image->getClientOriginalName();
-            $imagePath = $image->storeAs('profile_images', $imageName, 'public');
-            $user->profile_image = $imagePath;
+            
+            // First try to store using Laravel's storage system
+            try {
+                $imagePath = $image->storeAs('profile_images', $imageName, 'public');
+                $user->profile_image = $imagePath;
+                
+                // For production environments, also copy to public directory if symlink doesn't work
+                if (!file_exists(public_path('storage/' . $imagePath))) {
+                    $publicDir = public_path('profile_images');
+                    if (!file_exists($publicDir)) {
+                        mkdir($publicDir, 0755, true);
+                    }
+                    
+                    // Copy file to public directory as fallback
+                    copy(
+                        storage_path('app/public/' . $imagePath),
+                        public_path('profile_images/' . $imageName)
+                    );
+                    
+                    // Update path to point to public directory
+                    $user->profile_image = 'profile_images/' . $imageName;
+                }
+            } catch (\Exception $e) {
+                // Fallback: store directly in public directory
+                $publicDir = public_path('profile_images');
+                if (!file_exists($publicDir)) {
+                    mkdir($publicDir, 0755, true);
+                }
+                
+                $image->move($publicDir, $imageName);
+                $user->profile_image = 'profile_images/' . $imageName;
+            }
         }
 
         $user->save();

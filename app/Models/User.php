@@ -60,6 +60,19 @@ class User extends Authenticatable
         if (!$this->profile_image) {
             return null;
         }
+
+        // For production environments where storage symlink might not work
+        // Use asset() helper which handles the public path correctly
+        if (file_exists(public_path('storage/' . $this->profile_image))) {
+            return asset('storage/' . $this->profile_image);
+        }
+
+        // Fallback: try direct public path (if files were moved to public directory)
+        if (file_exists(public_path($this->profile_image))) {
+            return asset($this->profile_image);
+        }
+
+        // Last resort: return the storage URL (for symlinked environments)
         return url('storage/' . $this->profile_image);
     }
 
