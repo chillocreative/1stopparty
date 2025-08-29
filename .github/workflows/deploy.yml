@@ -1,3 +1,36 @@
+name: Deploy to cPanel   # 👈 workflow name
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader
+
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.ftp.keadilankb.com }}
+          username: ${{ secrets.apps@keadilankb.com }}
+          password: ${{ secrets.Rahim1977@ }}
+          local-dir: ./ 
+          server-dir: /home/keadilan/sys.keadilankb.com/   # adjust for your cPanel root
+
+  
   tasks:
     # Install PHP dependencies
     - export COMPOSER_ALLOW_SUPERUSER=1
