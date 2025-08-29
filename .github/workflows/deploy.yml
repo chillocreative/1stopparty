@@ -6,18 +6,7 @@ on:
       - master
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Install Dependencies & Build (if needed)
-        run: |
-          npm install
-          npm run build
-
-      - name: Upload to cPanel
+        - name: Upload to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4
         with:
           server: ${{ secrets.FTP_HOST }}
