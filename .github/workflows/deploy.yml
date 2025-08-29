@@ -3,13 +3,21 @@ name: Deploy to cPanel
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
-        - name: Upload to cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to cPanel via rsync
+        uses: burnett01/rsync-deployments@5.1
         with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-directory: ${{ secrets.FTP_DIR }}
+          switches: -avzr --delete
+          path: ./
+          remote_path: /home/username/public_html/
+          remote_host: yourdomain.com
+          remote_user: yourcpaneluser
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
