@@ -9,15 +9,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Deploy to cPanel via rsync
         uses: burnett01/rsync-deployments@5.1
         with:
           switches: -avzr --delete
           path: ./
-          remote_path: /home/username/public_html/
-          remote_host: yourdomain.com
-          remote_user: yourcpaneluser
-          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote_path: /home/keadilan/sys.keadilankb.com/
+          remote_host: sys.keadilankb.com
+          remote_user: keadilan
+          remote_key: ${{ ddQA60IioCRqmDiPusKZA7kNcIAQvi6l+mhpF8uccMI  }}
