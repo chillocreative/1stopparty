@@ -1,32 +1,47 @@
-name: 🚀 Deploy to cPanel
+deployment:
+  tasks:
+    # Install PHP dependencies
+    - export COMPOSER_ALLOW_SUPERUSER=1
+    - /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
 
-on:
-  push:
-    branches:
-      - master   # or main
+    # Sync files (exclude development files and directories)
+    - rsync -av --exclude='.git' --exclude='node_modules' --exclude='tests' --exclude='*.md' --exclude='.env.example' --exclude='storage/logs' --exclude='storage/framework/cache' --exclude='storage/framework/sessions' --exclude='storage/framework/views' . /home/keadilan/sys.keadilankb.com/
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+    # Set working directory to production path
+    - cd /home/keadilan/sys.keadilankb.com
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    # Clear and cache configurations
+    - /usr/bin/php -d register_argc_argv=On artisan config:clear
+    - /usr/bin/php -d register_argc_argv=On artisan config:cache
+    - /usr/bin/php -d register_argc_argv=On artisan route:clear
+    - /usr/bin/php -d register_argc_argv=On artisan route:cache
+    - /usr/bin/php -d register_argc_argv=On artisan view:clear
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'   # match your cPanel PHP version
+    # Fix storage symlink issues
+    - /usr/bin/php -d register_argc_argv=On artisan storage:link --force
 
-      - name: Install dependencies
-        run: |
-          composer install --no-dev --optimize-autoloader
+    # Create finance_files directory if it doesn't exist
+    - mkdir -p storage/app/public/finance_files
+    - chmod 755 storage/app/public/finance_files
 
-      - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.ftp.keadilankb.com }}
-          username: ${{ secrets.apps@keadilankb.com }}
-          password: ${{ secrets.Rahim1977@ }}
-          local-dir: ./   # project root
-          server-dir: /home/keadilan/sys.keadilankb.com/  # adjust your cPanel path
+    # Create profile_images directories if they don't exist  
+    - mkdir -p storage/app/public/profile_images
+    - mkdir -p storage/app/public/profile-images
+    - chmod 755 storage/app/public/profile_images
+    - chmod 755 storage/app/public/profile-images
+
+    # Run migrations (if needed)
+    - /usr/bin/php -d register_argc_argv=On artisan migrate --force
+
+    # Build frontend assets (if Node.js is available)
+    - /bin/npm install --production
+    - /bin/npm run build || echo "Frontend build failed or Node.js not available"
+
+    # Set proper permissions
+    - chmod -R 755 public
+    - chmod -R 755 storage
+    - find storage -type f -exec chmod 644 {} \;
+    - find public -type f -exec chmod 644 {} \;
+
+    # Test storage links
+    - /usr/bin/php -d register_argc_argv=On fix_storage_production.php || echo "Storage diagnostic completed"
