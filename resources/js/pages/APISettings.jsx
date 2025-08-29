@@ -23,6 +23,7 @@ const APISettings = () => {
     openai_model: 'gpt-4o',
     max_tokens: 2000,
     temperature: 0.7,
+    enable_streaming: true,
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [errors, setErrors] = useState({});
@@ -584,6 +585,35 @@ const APISettings = () => {
                 </div>
               </div>
 
+              {/* Streaming Toggle */}
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <Label htmlFor="enable_streaming" className="text-base font-medium">Enable Streaming Responses</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Stream responses in real-time for a better user experience. 
+                    Deepseek supports streaming for all models.
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={apiSettings.enable_streaming}
+                    onClick={() => handleInputChange('enable_streaming', !apiSettings.enable_streaming)}
+                    className={`${
+                      apiSettings.enable_streaming ? 'bg-blue-600' : 'bg-gray-200'
+                    } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`${
+                        apiSettings.enable_streaming ? 'translate-x-5' : 'translate-x-0'
+                      } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex space-x-4">
                 <Button
@@ -739,6 +769,35 @@ const APISettings = () => {
                   {errors.temperature && (
                     <p className="text-red-600 text-sm mt-1">{errors.temperature}</p>
                   )}
+                </div>
+              </div>
+
+              {/* Streaming Toggle */}
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                <div>
+                  <Label htmlFor="enable_streaming" className="text-base font-medium">Enable Streaming Responses</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Stream responses in real-time for a better user experience. 
+                    OpenAI supports streaming for all chat models.
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={apiSettings.enable_streaming}
+                    onClick={() => handleInputChange('enable_streaming', !apiSettings.enable_streaming)}
+                    className={`${
+                      apiSettings.enable_streaming ? 'bg-green-600' : 'bg-gray-200'
+                    } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`${
+                        apiSettings.enable_streaming ? 'translate-x-5' : 'translate-x-0'
+                      } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                    />
+                  </button>
                 </div>
               </div>
 

@@ -19,6 +19,7 @@ class AISettings extends Model
         'model',
         'max_tokens',
         'temperature',
+        'enable_streaming',
         'is_active'
     ];
 
@@ -26,6 +27,7 @@ class AISettings extends Model
         'temperature' => 'decimal:2',
         'max_tokens' => 'integer',
         'is_active' => 'boolean',
+        'enable_streaming' => 'boolean',
     ];
 
     // Encrypt Deepseek API key when saving
@@ -113,6 +115,7 @@ class AISettings extends Model
                 'model' => $this->openai_model,
                 'max_tokens' => (int) $this->max_tokens,
                 'temperature' => (float) $this->temperature,
+                'enable_streaming' => (bool) $this->enable_streaming,
                 'provider' => 'openai'
             ];
         } else {
@@ -122,6 +125,7 @@ class AISettings extends Model
                 'model' => $this->model,
                 'max_tokens' => (int) $this->max_tokens,
                 'temperature' => (float) $this->temperature,
+                'enable_streaming' => (bool) $this->enable_streaming,
                 'provider' => 'deepseek'
             ];
         }

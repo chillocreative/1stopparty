@@ -100,6 +100,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 // AI Analysis API routes for React frontend (all authenticated users)
 Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/api/ai-analysis/chat', [App\Http\Controllers\AIAnalysisController::class, 'chat']);
+    Route::post('/api/ai-analysis/stream', [App\Http\Controllers\AIAnalysisController::class, 'streamChat']);
 });
 
 
