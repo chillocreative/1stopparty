@@ -1,19 +1,48 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/keadilan/sys.keadilankb.com
+    # Install PHP dependencies
+    - export COMPOSER_ALLOW_SUPERUSER=1
+    - /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
 
-    # Sync all files except ignored ones
-    - /bin/rsync -av --exclude=".git" --exclude=".github" --exclude="node_modules" --exclude="tests" ./ $DEPLOYPATH
+    # Sync files (exclude development files and directories)
+    - rsync -av --exclude='.git' --exclude='node_modules' --exclude='tests' --exclude='*.md' --exclude='.env.example' --exclude='storage/logs' --exclude='storage/framework/cache' --exclude='storage/framework/sessions' --exclude='storage/framework/views' . /home/keadilan/sys.keadilankb.com/
 
-    # Set permissions
-    - /bin/chmod -R 775 $DEPLOYPATH/storage
-    - /bin/chmod -R 775 $DEPLOYPATH/bootstrap/cache
+    # Set working directory to production path
+    - cd /home/keadilan/sys.keadilankb.com
 
-    # Clear & optimize Laravel caches
-    - /usr/local/bin/php $DEPLOYPATH/artisan config:clear
-    - /usr/local/bin/php $DEPLOYPATH/artisan cache:clear
-    - /usr/local/bin/php $DEPLOYPATH/artisan route:clear
-    - /usr/local/bin/php $DEPLOYPATH/artisan view:clear
-    - /usr/local/bin/php $DEPLOYPATH/artisan config:cache
-    - /usr/local/bin/php $DEPLOYPATH/artisan route:cache
+    # Clear and cache configurations
+    - /usr/bin/php -d register_argc_argv=On artisan config:clear
+    - /usr/bin/php -d register_argc_argv=On artisan config:cache
+    - /usr/bin/php -d register_argc_argv=On artisan route:clear
+    - /usr/bin/php -d register_argc_argv=On artisan route:cache
+    - /usr/bin/php -d register_argc_argv=On artisan view:clear
+
+    # Fix storage symlink issues
+    - /usr/bin/php -d register_argc_argv=On artisan storage:link --force
+
+    # Create finance_files directory if it doesn't exist
+    - mkdir -p storage/app/public/finance_files
+    - chmod 755 storage/app/public/finance_files
+
+    # Create profile_images directories if they don't exist  
+    - mkdir -p storage/app/public/profile_images
+    - mkdir -p storage/app/public/profile-images
+    - chmod 755 storage/app/public/profile_images
+    - chmod 755 storage/app/public/profile-images
+
+    # Run migrations (if needed)
+    - /usr/bin/php -d register_argc_argv=On artisan migrate --force
+
+    # Build frontend assets (if Node.js is available)
+    - /bin/npm install --production
+    - /bin/npm run build || echo "Frontend build failed or Node.js not available"
+
+    # Set proper permissions
+    - chmod -R 755 public
+    - chmod -R 755 storage
+    - find storage -type f -exec chmod 644 {} \;
+    - find public -type f -exec chmod 644 {} \;
+
+    # Test storage links
+    - /usr/bin/php -d register_argc_argv=On fix_storage_production.php || echo "Storage diagnostic completed"

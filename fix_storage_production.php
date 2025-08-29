@@ -62,8 +62,24 @@ if (file_exists($profileImagesPath)) {
     }
 }
 
+// Check finance_files directory
+$financeFilesPath = $storagePath . '/finance_files';
+echo "\n5. Checking finance_files directory:\n";
+echo "   Finance files dir exists: " . (file_exists($financeFilesPath) ? 'Yes' : 'No') . "\n";
+
+if (file_exists($financeFilesPath)) {
+    echo "   Finance files writable: " . (is_writable($financeFilesPath) ? 'Yes' : 'No') . "\n";
+    echo "   Finance files contents:\n";
+    $files = scandir($financeFilesPath);
+    foreach ($files as $file) {
+        if ($file !== '.' && $file !== '..') {
+            echo "     - {$file}\n";
+        }
+    }
+}
+
 // Attempt to create symlink if it doesn't exist
-echo "\n5. Attempting fixes:\n";
+echo "\n6. Attempting fixes:\n";
 
 if (!file_exists($symlinkPath)) {
     echo "   Creating storage symlink...\n";
@@ -95,6 +111,16 @@ if (!file_exists($profileImagesPath)) {
         echo "   ✓ Profile images directory created\n";
     } else {
         echo "   ✗ Failed to create profile images directory\n";
+    }
+}
+
+// Create finance_files directory if it doesn't exist
+if (!file_exists($financeFilesPath)) {
+    echo "   Creating finance_files directory...\n";
+    if (mkdir($financeFilesPath, 0755, true)) {
+        echo "   ✓ Finance files directory created\n";
+    } else {
+        echo "   ✗ Failed to create finance files directory\n";
     }
 }
 
