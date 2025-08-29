@@ -1,0 +1,32 @@
+name: 🚀 Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - master   # or main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'   # match your cPanel PHP version
+
+      - name: Install dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader
+
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.ftp.keadilankb.com }}
+          username: ${{ secrets.apps@keadilankb.com }}
+          password: ${{ secrets.Rahim1977@ }}
+          local-dir: ./   # project root
+          server-dir: /home/keadilan/sys.keadilankb.com/  # adjust your cPanel path
