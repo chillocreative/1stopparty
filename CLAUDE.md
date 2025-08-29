@@ -17,7 +17,7 @@ This runs a complete development environment with:
 ### Individual Commands
 - **Backend server**: `php artisan serve`
 - **Frontend build**: `npm run build`
-- **Frontend dev**: `npm run dev`
+- **Frontend dev**: `npm run dev` (or `vite`)
 - **Run tests**: `composer test` (runs `php artisan test`)
 - **Code formatting**: `./vendor/bin/pint` (Laravel Pint)
 
@@ -29,12 +29,23 @@ This runs a complete development environment with:
 - **Create model**: `php artisan make:model ModelName -m` (includes migration)
 - **Database**: MySQL (database: `1stopparty`)
 
+### Cache Management
+- **Clear all caches**: `php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear`
+- **Cache config**: `php artisan config:cache`
+- **Cache routes**: `php artisan route:cache`
+- **Clear specific caches**:
+  - Config: `php artisan config:clear`
+  - Routes: `php artisan route:clear`
+  - Views: `php artisan view:clear`
+  - Application: `php artisan cache:clear`
+
 ### Artisan Commands
 - **Create controller**: `php artisan make:controller ControllerName`
+- **Create resource controller**: `php artisan make:controller ControllerName --resource`
+- **Create API controller**: `php artisan make:controller ControllerName --api`
 - **Create resource**: `php artisan make:resource ResourceName`
 - **Create middleware**: `php artisan make:middleware MiddlewareName`
 - **Create seeder**: `php artisan make:seeder SeederName`
-- **Clear cache**: `php artisan config:clear && php artisan cache:clear`
 
 ## Architecture Overview
 
@@ -185,3 +196,29 @@ Pre-seeded test accounts (password varies by role):
 - `/debug/auth` route for authentication debugging
 - Enhanced error handling with detailed messages
 - Console logging in React components for troubleshooting
+
+## Deployment Configuration
+
+### Production Deployment (cPanel)
+The project uses `cpanel.yml` for automated deployment. The deployment process:
+
+1. **Install PHP dependencies**: `composer install --no-dev --optimize-autoloader`
+2. **Sync files**: Uses rsync to copy files (excludes `.git`, `node_modules`, `tests`)
+3. **Clear and cache configurations**:
+   - `php artisan config:clear && php artisan config:cache`
+   - `php artisan route:cache`
+   - `php artisan view:clear`
+4. **Run migrations** (if needed): `php artisan migrate --force`
+5. **Build frontend assets**: `npm install && npm run build`
+
+### Production Environment Setup
+- **Deploy path**: `/home/keadilan/sys.keadilankb.com`
+- **PHP binary**: `/usr/bin/php` with `-d register_argc_argv=On` flag
+- **Composer path**: `/opt/cpanel/composer/bin/composer`
+- **NPM path**: `/bin/npm`
+
+### Route Naming Conventions
+Web routes that might conflict with API resource routes use prefixed names:
+- `users.web.index` instead of `users.index` (to avoid conflicts with API resource routes)
+- `roles.web.index` instead of `roles.index`
+- This prevents route caching errors in production

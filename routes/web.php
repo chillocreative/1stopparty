@@ -466,19 +466,19 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     // View routes
     Route::get('/users', function () {
         return view('dashboard');
-    })->name('users.index');
+    })->name('users.web.index');
 
     Route::get('/users/create', function () {
         return view('dashboard');
-    })->name('users.create');
+    })->name('users.web.create');
 
     Route::get('/users/edit/{user?}', function () {
         return view('dashboard');
-    })->name('users.edit');
+    })->name('users.web.edit');
 
     Route::get('/roles', function () {
         return view('dashboard');
-    })->name('roles.index');
+    })->name('roles.web.index');
 
     Route::get('/meeting-categories', function () {
         return view('dashboard');
