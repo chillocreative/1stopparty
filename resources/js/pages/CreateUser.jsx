@@ -429,7 +429,7 @@ const CreateUser = () => {
                     value={formData.phone}
                     onChange={(e) => {
                       const value = e.target.value.replace(/[^0-9]/g, '');
-                      if (value.length <= 11 && (!value || value.startsWith('01'))) {
+                      if (value.length <= 11) {
                         handleInputChange({
                           target: { name: 'phone', value }
                         });
