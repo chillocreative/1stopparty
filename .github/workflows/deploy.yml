@@ -30,23 +30,3 @@ jobs:
           protocol: ftps
           local-dir: ./
           server-dir: /home/keadilan/sys.keadilankb.com/
-
-      # (Optional) Run Laravel optimization commands remotely
-      - name: SSH to cPanel and run artisan commands
-        if: always()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.CPANEL_SSH_HOST }}
-          username: ${{ secrets.CPANEL_SSH_USER }}
-          password: ${{ secrets.CPANEL_SSH_PASS }}
-          port: 22
-          script: |
-            cd /home/keadilan/sys.keadilankb.com
-            php artisan config:clear
-            php artisan config:cache
-            php artisan route:clear
-            php artisan route:cache
-            php artisan view:clear
-            php artisan storage:link --force
-            php artisan migrate --force
-            chmod -R 755 storage bootstrap/cache
