@@ -548,4 +548,70 @@ class FinanceController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * View/download the finance file
+     */
+    public function viewFile(Finance $finance): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+    {
+        try {
+            if (!$finance->file_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No file associated with this finance record'
+                ], 404);
+            }
+
+            $filePath = storage_path('app/public/' . $finance->file_path);
+            
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            return response()->file($filePath);
+        } catch (\Exception $e) {
+            Log::error('Error viewing finance file: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error accessing file'
+            ], 500);
+        }
+    }
+
+    /**
+     * Download the finance file
+     */
+    public function downloadFile(Finance $finance): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+    {
+        try {
+            if (!$finance->file_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No file associated with this finance record'
+                ], 404);
+            }
+
+            $filePath = storage_path('app/public/' . $finance->file_path);
+            
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            $originalName = basename($finance->file_path);
+            
+            return response()->download($filePath, $originalName);
+        } catch (\Exception $e) {
+            Log::error('Error downloading finance file: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error downloading file'
+            ], 500);
+        }
+    }
 }

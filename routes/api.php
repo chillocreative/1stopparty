@@ -121,4 +121,6 @@ Route::middleware(['web', 'auth', 'role:Admin,Bendahari'])->group(function () {
     Route::post('finances/save-data', [App\Http\Controllers\FinanceController::class, 'saveFinanceData']);
     Route::put('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'update']);
     Route::delete('finances/{finance}', [App\Http\Controllers\FinanceController::class, 'destroy']);
+    Route::get('finances/{finance}/view-file', [App\Http\Controllers\FinanceController::class, 'viewFile']);
+    Route::get('finances/{finance}/download-file', [App\Http\Controllers\FinanceController::class, 'downloadFile']);
 });

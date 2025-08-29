@@ -53,7 +53,7 @@ class Finance extends Model
     /**
      * Get the file URL.
      */
-    protected function getFileUrlAttribute(): ?string
+    public function getFileUrlAttribute(): ?string
     {
         if (!$this->file_path) {
             return null;

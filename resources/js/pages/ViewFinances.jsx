@@ -130,9 +130,23 @@ const ViewFinances = () => {
         }
     };
 
-    const handleViewFile = (fileUrl) => {
-        if (fileUrl) {
-            window.open(fileUrl, '_blank');
+    const handleViewFile = (financeId, hasFile) => {
+        if (hasFile) {
+            window.open(`/api/finances/${financeId}/view-file`, '_blank');
+        } else {
+            alert('No file available for this record');
+        }
+    };
+
+    const handleDownloadFile = (financeId, hasFile, title) => {
+        if (hasFile) {
+            // Create a temporary link to trigger download
+            const link = document.createElement('a');
+            link.href = `/api/finances/${financeId}/download-file`;
+            link.download = `${title}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         } else {
             alert('No file available for this record');
         }
@@ -333,13 +347,22 @@ const ViewFinances = () => {
                                                         ) : (
                                                             <div className="flex justify-center space-x-1">
                                                                 <button
-                                                                    onClick={() => handleViewFile(finance.file_url)}
+                                                                    onClick={() => handleViewFile(finance.id, !!finance.file_path)}
                                                                     className="text-blue-600 hover:text-blue-900 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                                                                     title="View PDF"
                                                                 >
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDownloadFile(finance.id, !!finance.file_path, finance.title)}
+                                                                    className="text-green-600 hover:text-green-900 p-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                                                                    title="Download PDF"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                                     </svg>
                                                                 </button>
                                                                 <button
