@@ -1,20 +1,19 @@
-name: Deploy to cPanel
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/keadilan/sys.keadilankb.com
 
-on:
-  push:
-    branches:
-      - main
+    # Sync all files except ignored ones
+    - /bin/rsync -av --exclude=".git" --exclude=".github" --exclude="node_modules" --exclude="tests" ./ $DEPLOYPATH
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to cPanel via rsync
-        uses: burnett01/rsync-deployments@5.1
-        with:
-          switches: -avzr --delete
-          path: ./
-          remote_path: /home/keadilan/sys.keadilankb.com/
-          remote_host: sys.keadilankb.com
-          remote_user: keadilan
-          remote_key: ${{ ddQA60IioCRqmDiPusKZA7kNcIAQvi6l+mhpF8uccMI  }}
+    # Set permissions
+    - /bin/chmod -R 775 $DEPLOYPATH/storage
+    - /bin/chmod -R 775 $DEPLOYPATH/bootstrap/cache
+
+    # Clear & optimize Laravel caches
+    - /usr/local/bin/php $DEPLOYPATH/artisan config:clear
+    - /usr/local/bin/php $DEPLOYPATH/artisan cache:clear
+    - /usr/local/bin/php $DEPLOYPATH/artisan route:clear
+    - /usr/local/bin/php $DEPLOYPATH/artisan view:clear
+    - /usr/local/bin/php $DEPLOYPATH/artisan config:cache
+    - /usr/local/bin/php $DEPLOYPATH/artisan route:cache
