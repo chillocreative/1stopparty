@@ -1,4 +1,4 @@
-name: Deploy to cPanel   # 👈 workflow name
+name: Deploy to cPanel
 
 on:
   push:
@@ -18,62 +18,35 @@ jobs:
         with:
           php-version: '8.3'
 
-      - name: Install dependencies
+      - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
 
       - name: Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ ftp.keadilankb.com }}
-          username: ${{ apps@keadilankb.com }}
-          password: ${{ Rahim1977@ }}
-          local-dir: ./ 
-          server-dir: /home/keadilan/sys.keadilankb.com/   # adjust for your cPanel root
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USER }}
+          password: ${{ secrets.CPANEL_FTP_PASS }}
+          protocol: ftps
+          local-dir: ./
+          server-dir: /home/keadilan/sys.keadilankb.com/
 
-  
-  tasks:
-    # Install PHP dependencies
-    - export COMPOSER_ALLOW_SUPERUSER=1
-    - /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction
-
-    # Sync files (exclude development files and directories)
-    - rsync -av --exclude='.git' --exclude='node_modules' --exclude='tests' --exclude='*.md' --exclude='.env.example' --exclude='storage/logs' --exclude='storage/framework/cache' --exclude='storage/framework/sessions' --exclude='storage/framework/views' . /home/keadilan/sys.keadilankb.com/
-
-    # Set working directory to production path
-    - cd /home/keadilan/sys.keadilankb.com
-
-    # Clear and cache configurations
-    - /usr/bin/php -d register_argc_argv=On artisan config:clear
-    - /usr/bin/php -d register_argc_argv=On artisan config:cache
-    - /usr/bin/php -d register_argc_argv=On artisan route:clear
-    - /usr/bin/php -d register_argc_argv=On artisan route:cache
-    - /usr/bin/php -d register_argc_argv=On artisan view:clear
-
-    # Fix storage symlink issues
-    - /usr/bin/php -d register_argc_argv=On artisan storage:link --force
-
-    # Create finance_files directory if it doesn't exist
-    - mkdir -p storage/app/public/finance_files
-    - chmod 755 storage/app/public/finance_files
-
-    # Create profile_images directories if they don't exist  
-    - mkdir -p storage/app/public/profile_images
-    - mkdir -p storage/app/public/profile-images
-    - chmod 755 storage/app/public/profile_images
-    - chmod 755 storage/app/public/profile-images
-
-    # Run migrations (if needed)
-    - /usr/bin/php -d register_argc_argv=On artisan migrate --force
-
-    # Build frontend assets (if Node.js is available)
-    - /bin/npm install --production
-    - /bin/npm run build || echo "Frontend build failed or Node.js not available"
-
-    # Set proper permissions
-    - chmod -R 755 public
-    - chmod -R 755 storage
-    - find storage -type f -exec chmod 644 {} \;
-    - find public -type f -exec chmod 644 {} \;
-
-    # Test storage links
-    - /usr/bin/php -d register_argc_argv=On fix_storage_production.php || echo "Storage diagnostic completed"
+      # (Optional) Run Laravel optimization commands remotely
+      - name: SSH to cPanel and run artisan commands
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USER }}
+          password: ${{ secrets.CPANEL_SSH_PASS }}
+          port: 22
+          script: |
+            cd /home/keadilan/sys.keadilankb.com
+            php artisan config:clear
+            php artisan config:cache
+            php artisan route:clear
+            php artisan route:cache
+            php artisan view:clear
+            php artisan storage:link --force
+            php artisan migrate --force
+            chmod -R 755 storage bootstrap/cache
