@@ -74,6 +74,28 @@ class MemberController extends Controller
                 'active_members' => Member::active()->approved()->count(),
                 'male_members' => Member::approved()->where('gender', 'M')->count(),
                 'female_members' => Member::approved()->where('gender', 'F')->count(),
+                'race_breakdown' => Member::approved()
+                    ->select('race', \DB::raw('count(*) as count'))
+                    ->whereNotNull('race')
+                    ->where('race', '!=', '')
+                    ->groupBy('race')
+                    ->orderBy('count', 'desc')
+                    ->get()
+                    ->mapWithKeys(function($item) {
+                        return [$item->race => $item->count];
+                    })
+                    ->toArray(),
+                'branch_breakdown' => Member::approved()
+                    ->select('branch', \DB::raw('count(*) as count'))
+                    ->whereNotNull('branch')
+                    ->where('branch', '!=', '')
+                    ->groupBy('branch')
+                    ->orderBy('count', 'desc')
+                    ->get()
+                    ->mapWithKeys(function($item) {
+                        return [$item->branch => $item->count];
+                    })
+                    ->toArray(),
             ]
         ]);
     }
